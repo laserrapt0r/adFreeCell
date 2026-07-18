@@ -34,6 +34,9 @@
       </div>
 
       <div class="top-right">
+        <button id="btn-browse" class="icon-btn" data-i18n-aria="browseTitle" title="Deals">
+          <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+        </button>
         <button id="btn-help" class="icon-btn" data-i18n-aria="howToTitle" title="?">
           <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 15.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4zM12 6.2c1.9 0 3.4 1.3 3.4 3.1 0 1.4-.8 2.1-1.8 2.8-.7.5-1 .8-1 1.5v.4h-1.9v-.6c0-1.3.6-2 1.5-2.6.8-.6 1.2-.9 1.2-1.6 0-.8-.7-1.3-1.5-1.3-.9 0-1.5.6-1.6 1.5H8c.1-1.9 1.7-3.2 4-3.2z"/></svg>
         </button>
@@ -130,6 +133,34 @@
           <button id="btn-stats-reset" class="btn btn-ghost danger" data-i18n="resetStats">Statistik zurücksetzen</button>
           <button id="btn-stats-close" class="btn btn-primary" data-i18n="close">Schließen</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Deal browser overlay -->
+    <div id="overlay-browse" class="overlay">
+      <div class="card-panel browse-panel">
+        <h2 data-i18n="browseTitle">Deal-Übersicht</h2>
+        <p id="browse-progress" class="muted-line"></p>
+        <div class="browse-filters" id="browse-filters">
+          <button class="filt active" data-filt="all" data-i18n="filterAll">Alle</button>
+          <button class="filt" data-filt="1" data-i18n="diff1">Leicht</button>
+          <button class="filt" data-filt="2" data-i18n="diff2">Mittel</button>
+          <button class="filt" data-filt="3" data-i18n="diff3">Schwer</button>
+          <button class="filt" data-filt="4" data-i18n="diff4">Experte</button>
+          <button class="filt" data-filt="9" data-i18n="filterUnsolvable">Unlösbar</button>
+        </div>
+        <div class="browse-filters" id="browse-solvedfilters">
+          <button class="filt small active" data-solved="all" data-i18n="filterAny">Alle</button>
+          <button class="filt small" data-solved="open" data-i18n="filterOpen">Offen</button>
+          <button class="filt small" data-solved="done" data-i18n="filterDone">Gelöst</button>
+        </div>
+        <div id="browse-grid" class="browse-grid"></div>
+        <div class="browse-pager">
+          <button id="browse-prev" class="btn btn-ghost btn-sm">‹</button>
+          <span id="browse-page" class="browse-page"></span>
+          <button id="browse-next" class="btn btn-ghost btn-sm">›</button>
+        </div>
+        <button id="btn-browse-close" class="btn btn-primary" data-i18n="close">Schließen</button>
       </div>
     </div>
 

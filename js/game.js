@@ -695,69 +695,35 @@
     var col = state.tableau[dest.col];
     return col.length ? cardEls[col[col.length - 1].uid] : slotEls.column[dest.col];
   }
+  // The hint flies the card(s) to their destination and then snaps them back
+  // instantly. It only retargets the cards' own layout transforms (the very ones
+  // render() sets), so it can never be off — no canvas or coordinate maths.
+  var hintFlying = false;
+  function hintDropPos(dest) {
+    if (dest.kind === 'foundation') return { x: m.foundX[dest.suit], y: m.topY };
+    if (dest.kind === 'free') return { x: m.freeX[dest.i], y: m.topY };
+    var col = state.tableau[dest.col];
+    return { x: m.colX[dest.col], y: m.tableauY + col.length * m.fan };
+  }
   function showHintVisual(h) {
     clearHintVisual();
-    h.uids.forEach(function (u) { cardEls[u].classList.add('hintful'); });
     var target = destElement(h.dest);
     if (target) target.classList.add('hint-target');
-    drawHintArrow(h.uids[0], h.dest);
-    hintTimer = setTimeout(clearHintVisual, 2000);
+    var dp = hintDropPos(h.dest);
+    hintFlying = true;
+    h.uids.forEach(function (uid, k) {
+      var el = cardEls[uid];
+      el.classList.remove('no-anim');
+      el.style.zIndex = 2000 + k;
+      el.style.transform = 'translate(' + dp.x + 'px,' + (dp.y + k * m.fan) + 'px)';
+    });
+    hintTimer = setTimeout(clearHintVisual, 620); // fly (~.19s) + brief hold, then snap back
   }
   function clearHintVisual() {
     if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
-    for (var u in cardEls) cardEls[u].classList.remove('hintful', 'hint-target');
+    for (var u in cardEls) cardEls[u].classList.remove('hint-target', 'hintful');
     slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (sl) { sl.classList.remove('hint-target'); });
-    if (hintRAF) { cancelAnimationFrame(hintRAF); hintRAF = 0; }
-    var ctx = fx.getContext('2d'); ctx.clearRect(0, 0, fx.width, fx.height);
-  }
-  // Arrow endpoints come from the logical layout (not element rects), so a card
-  // that is mid-animation can never throw the arrow off to the wrong place.
-  function playOffset() { var r = play.getBoundingClientRect(); return { x: r.left, y: r.top }; }
-  function cardCenterVP(uid) {
-    var p = computePositions()[uid]; if (!p) return null;
-    var o = playOffset(); return { x: o.x + p.x + m.cw / 2, y: o.y + p.y + m.ch / 2 };
-  }
-  function destCenterVP(dest) {
-    var o = playOffset();
-    if (dest.kind === 'foundation') return { x: o.x + m.foundX[dest.suit] + m.cw / 2, y: o.y + m.topY + m.ch / 2 };
-    if (dest.kind === 'free') return { x: o.x + m.freeX[dest.i] + m.cw / 2, y: o.y + m.topY + m.ch / 2 };
-    var col = state.tableau[dest.col];
-    var y = m.tableauY + (col.length ? (col.length - 1) * m.fan : 0);
-    return { x: o.x + m.colX[dest.col] + m.cw / 2, y: o.y + y + m.ch / 2 };
-  }
-  function drawHintArrow(fromUid, dest) {
-    var a = cardCenterVP(fromUid), b = destCenterVP(dest);
-    if (!a || !b) return;
-    var ctx = fx.getContext('2d');
-    var dpr = window.devicePixelRatio || 1;
-    fx.width = innerWidth * dpr; fx.height = innerHeight * dpr;
-    var t0 = Date.now();
-    (function frame() {
-      var el = Date.now() - t0;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, innerWidth, innerHeight);
-      var alpha = el < 1600 ? 1 : Math.max(0, 1 - (el - 1600) / 400);
-      drawArrow(ctx, a, b, alpha);
-      if (el < 2000) hintRAF = requestAnimationFrame(frame);
-      else { hintRAF = 0; ctx.clearRect(0, 0, innerWidth, innerHeight); }
-    })();
-  }
-  function drawArrow(ctx, a, b, alpha) {
-    var ang = Math.atan2(b.y - a.y, b.x - a.x);
-    var ux = Math.cos(ang), uy = Math.sin(ang);
-    var tipx = b.x - ux * 14, tipy = b.y - uy * 14;       // stop short of the target centre
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = '#37c978'; ctx.fillStyle = '#37c978';
-    ctx.lineWidth = 5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(tipx - ux * 10, tipy - uy * 10); ctx.stroke();
-    var ah = 16;
-    ctx.beginPath();
-    ctx.moveTo(tipx, tipy);
-    ctx.lineTo(tipx - ah * Math.cos(ang - 0.42), tipy - ah * Math.sin(ang - 0.42));
-    ctx.lineTo(tipx - ah * Math.cos(ang + 0.42), tipy - ah * Math.sin(ang + 0.42));
-    ctx.closePath(); ctx.fill();
-    ctx.restore();
+    if (hintFlying) { hintFlying = false; render(false); } // snap the flown cards back to their real spots
   }
 
   function onWin() {
@@ -890,6 +856,28 @@
     document.getElementById('btn-help').onclick = function () { show('overlay-howto'); };
     document.getElementById('btn-howto-close').onclick = function () { hide('overlay-howto'); };
     document.getElementById('btn-stats').onclick = function () { renderStats(); show('overlay-stats'); };
+
+    document.getElementById('btn-browse').onclick = openBrowse;
+    document.getElementById('btn-browse-close').onclick = function () { hide('overlay-browse'); };
+    document.getElementById('browse-prev').onclick = function () { browse.page--; browseRender(); };
+    document.getElementById('browse-next').onclick = function () { browse.page++; browseRender(); };
+    // wire both filter rows
+    (function () {
+      var wire = function (sel, key, attr) {
+        document.querySelectorAll(sel + ' .filt').forEach(function (b) {
+          b.onclick = function () {
+            document.querySelectorAll(sel + ' .filt').forEach(function (x) { x.classList.remove('active'); });
+            b.classList.add('active'); browse[key] = b.dataset[attr]; browse.page = 0; browseBuild(); browseRender();
+          };
+        });
+      };
+      wire('#browse-filters', 'filter', 'filt');
+      wire('#browse-solvedfilters', 'solved', 'solved');
+    })();
+    document.getElementById('browse-grid').addEventListener('click', function (e) {
+      var cell = e.target.closest('.deal-cell'); if (!cell) return;
+      hide('overlay-browse'); newGame(+cell.dataset.n);
+    });
     document.getElementById('btn-stats-close').onclick = function () { hide('overlay-stats'); };
     document.getElementById('btn-stats-reset').onclick = function () {
       if (confirm(T('resetStatsConfirm'))) { window.Storage.resetStats(); renderStats(); }
@@ -978,6 +966,49 @@
     if (!Diff) return D.randomSolvableNumber();
     for (var i = 0; i < 4000; i++) { var n = 1 + Math.floor(Math.random() * Diff.tiers.length); if (n !== 11982 && tierOf(n) === tier) return n; }
     return D.randomSolvableNumber();
+  }
+
+  // ---------- deal browser (paginated, filter by difficulty / solved) ----------
+  var BROWSE_PAGE = 120;
+  var browse = { filter: 'all', solved: 'all', page: 0, list: [] };
+  function browseBuild() {
+    var list = [];
+    for (var n = 1; n <= 32000; n++) {
+      var t = tierOf(n);
+      if (browse.filter === '9') { if (t !== 9) continue; }
+      else if (browse.filter !== 'all' && String(t) !== browse.filter) continue;
+      var solved = window.Storage.isSolved(n);
+      if (browse.solved === 'open' && solved) continue;
+      if (browse.solved === 'done' && !solved) continue;
+      list.push(n);
+    }
+    browse.list = list;
+  }
+  function browseRender() {
+    var pages = Math.max(1, Math.ceil(browse.list.length / BROWSE_PAGE));
+    browse.page = Math.max(0, Math.min(browse.page, pages - 1));
+    var start = browse.page * BROWSE_PAGE;
+    var slice = browse.list.slice(start, start + BROWSE_PAGE);
+    var cur = state ? state.number : -1;
+    document.getElementById('browse-grid').innerHTML = slice.map(function (n) {
+      var cls = 'deal-cell tier-' + tierOf(n);
+      if (window.Storage.isSolved(n)) cls += ' solved';
+      if (n === cur) cls += ' current';
+      return '<div class="' + cls + '" data-n="' + n + '">' + n + '</div>';
+    }).join('');
+    document.getElementById('browse-page').textContent = browse.list.length
+      ? T('pageFmt', { p: browse.page + 1, total: pages }) : T('noneFound');
+    document.getElementById('browse-progress').textContent = T('progressFmt', { n: window.Storage.solvedCount() });
+    document.getElementById('browse-prev').disabled = browse.page === 0;
+    document.getElementById('browse-next').disabled = browse.page >= pages - 1;
+  }
+  function openBrowse() {
+    document.getElementById('browse-filters').style.display = Diff ? '' : 'none';
+    browseBuild();
+    var idx = browse.list.indexOf(state ? state.number : -1);
+    browse.page = idx >= 0 ? Math.floor(idx / BROWSE_PAGE) : 0;
+    browseRender();
+    show('overlay-browse');
   }
 
   function openSelect() {

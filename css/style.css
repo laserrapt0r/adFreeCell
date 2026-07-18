@@ -320,6 +320,42 @@ html, body {
 .diff-btn[data-tier="3"] { border-color: #f2724b; }
 .diff-btn[data-tier="4"] { border-color: #e11d48; }
 
+/* deal browser */
+.browse-panel { width: min(700px, 100%); }
+.browse-filters { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0; }
+.filt {
+  border: 1.5px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--muted);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.filt.small { padding: 4px 10px; font-size: 0.72rem; }
+.filt:hover { background: rgba(255, 255, 255, 0.12); }
+.filt.active { background: var(--accent-2); color: #06281a; border-color: transparent; }
+.browse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(44px, 12vw, 58px), 1fr));
+  gap: 6px; max-height: 44vh; overflow-y: auto; padding: 4px; margin-top: 4px;
+}
+.deal-cell {
+  position: relative; aspect-ratio: 1.35;
+  border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  cursor: pointer; background: rgba(255, 255, 255, 0.04); color: var(--text);
+}
+.deal-cell:hover { background: rgba(255, 255, 255, 0.14); }
+.deal-cell.solved { background: rgba(55, 201, 120, 0.16); }
+.deal-cell.solved::after { content: '✓'; position: absolute; top: 0; right: 3px; font-size: 0.62rem; color: var(--accent-2); }
+.deal-cell.current { outline: 2px solid var(--accent); outline-offset: -1px; }
+.deal-cell.tier-1 { border-left-color: #37c978; }
+.deal-cell.tier-2 { border-left-color: #ffd166; }
+.deal-cell.tier-3 { border-left-color: #f2724b; }
+.deal-cell.tier-4 { border-left-color: #e11d48; }
+.deal-cell.tier-9 { border-left-color: var(--danger); }
+.deal-cell.tier-0 { border-left-color: var(--line); }
+.browse-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 12px 0 8px; }
+.browse-page { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 120px; text-align: center; }
+
 /* toast */
 .toast {
   position: fixed;
