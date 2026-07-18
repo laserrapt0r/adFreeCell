@@ -27,6 +27,7 @@ html, body {
   --accent: #ffd166;
   --accent-2: #37c978;
   --danger: #ff6b6b;
+  --red-suit: #d40000;         /* ink for hearts/diamonds; colorblind mode brightens it */
   --bar: rgba(0, 0, 0, 0.28);
   --panel: #1c2733;
   --panel-2: #26333f;
@@ -52,6 +53,10 @@ html, body {
   --accent: #ffd166; --accent-2: #8bd3a0;
   --felt-a: #4a5560; --felt-b: #333c46; --felt-c: #232a32;
 }
+/* colorblind-friendly deck: a higher-luminance vermilion for the red suits so
+   red-blind (protanopia) players can tell red from black; black stays black,
+   and the four suit SHAPES disambiguate the suits regardless of colour. */
+#app[data-cb="1"] { --red-suit: #ee4400; }
 
 /* ---------------- top bar ---------------- */
 #topbar {
@@ -145,6 +150,7 @@ html, body {
   overflow: hidden;
 }
 .card svg { display: block; width: 100%; height: 100%; }
+.card.red-suit { color: var(--red-suit); }   /* drives the red ink via currentColor */
 .card.dragging { transition: none; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5); cursor: grabbing; }
 .card.selected { box-shadow: 0 0 0 3px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.5); }
 /* hint: source card pulses amber, destination gets a green ring (matches arrow) */

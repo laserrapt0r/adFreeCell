@@ -175,7 +175,7 @@
       for (var rank = 1; rank <= 13; rank++) {
         var id = suit * 13 + rank;
         var el = document.createElement('div');
-        el.className = 'card';
+        el.className = 'card' + (SUIT_IS_RED[suit] ? ' red-suit' : ' black-suit');
         el.dataset.uid = id;
         var svgId = 'card_' + rank + SUIT_LETTER[suit];
         // the card box matches the native 225:314 ratio, so the default
@@ -855,6 +855,7 @@
     // settings controls
     buildLangSelect();
     seg('set-theme', window.Storage.theme, function (v) { window.Storage.setTheme(v); app.dataset.theme = v; });
+    seg('set-colorblind', window.Storage.colorblind ? '1' : '0', function (v) { window.Storage.setColorblind(v === '1'); app.dataset.cb = v === '1' ? '1' : '0'; });
     seg('set-autocollect', window.Storage.autoCollect ? '1' : '0', function (v) { window.Storage.setAutoCollect(v === '1'); });
     seg('set-oneclick', window.Storage.oneClick ? '1' : '0', function (v) { window.Storage.setOneClick(v === '1'); });
     seg('set-sound', window.Storage.soundOn ? '1' : '0', function (v) { window.Storage.setSound(v === '1'); });
@@ -958,6 +959,7 @@
     if (window.CARDS_SPRITE_INJECT) window.CARDS_SPRITE_INJECT();
     window.I18n.apply(document);
     app.dataset.theme = window.Storage.theme;
+    app.dataset.cb = window.Storage.colorblind ? '1' : '0';
     buildSlots();
     wire();
 

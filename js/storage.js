@@ -9,6 +9,7 @@
     soundOn: true,
     autoCollect: true,    // auto-send safe cards to the foundations
     oneClick: true,       // single click/tap auto-moves a card to its best spot
+    colorblind: false,    // brighten red suits (vermilion) for red-green CVD
     showTimer: true,
     theme: 'felt',        // 'felt' | 'midnight' | 'slate'
     tipShown: false,
@@ -44,6 +45,8 @@
     setAutoCollect: function (v) { state.autoCollect = !!v; persist(); },
     get oneClick() { return state.oneClick; },
     setOneClick: function (v) { state.oneClick = !!v; persist(); },
+    get colorblind() { return state.colorblind; },
+    setColorblind: function (v) { state.colorblind = !!v; persist(); },
     get showTimer() { return state.showTimer; },
     setShowTimer: function (v) { state.showTimer = !!v; persist(); },
     get theme() { return state.theme; },

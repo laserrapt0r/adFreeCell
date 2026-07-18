@@ -48,7 +48,10 @@ function buildGroup(name) {
     .replace(/id="numeral"/g, `id="${name}_numeral"`)
     .replace(/#suit/g, `#${name}_suit`)
     .replace(/#numeral/g, `#${name}_numeral`);
-  return `<g id="card_${name}"${carryAttrs(openTag)}>${inner}</g>`;
+  // Make the red ink controllable from CSS: currentColor lets a "colorblind"
+  // theme swap the red suits to a higher-luminance vermilion (distinct from
+  // black for red-blind players). Black suits keep the default black fill.
+  return `<g id="card_${name}"${carryAttrs(openTag)}>${inner}</g>`.replace(/#d40000/g, 'currentColor');
 }
 
 const groups = [];
