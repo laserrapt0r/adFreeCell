@@ -118,9 +118,12 @@ function solve(n, maxNodes) {
   }
 }
 
+module.exports = { solve: solve, rootCols: rootCols };
+
 // ---------------- CLI ----------------
 const MAX = 32000, UNSOLVABLE = 11982;
-const mode = process.argv[2] || 'bench';
+const mode = require.main === module ? (process.argv[2] || 'bench') : 'noop';
+if (mode === 'noop') { /* required as a module; skip CLI */ } else
 
 if (mode === 'bench') {
   const count = parseInt(process.argv[3] || '120', 10), cap = parseInt(process.argv[4] || '100000', 10);
