@@ -26,23 +26,36 @@ const canStack = (a, b) => rankOf(b) === rankOf(a) + 1 && isRed(b) !== isRed(a);
 
 function rootCols(n) { return D.deal(n).columns.map(col => col.map(c => c.suit * 13 + (c.rank - 1))); }
 
-// ----- compact canonical encode / decode -----
-function encode(cols, free, found) {
-  const parts = [];
-  for (let k = 0; k < 8; k++) { let s = ''; const col = cols[k]; for (let j = 0; j < col.length; j++) s += String.fromCharCode(col[j] + 1); parts.push(s); }
-  parts.sort();
-  let fr = ''; const fs = free.filter(x => x >= 0).sort((a, b) => a - b); for (let i = 0; i < fs.length; i++) fr += String.fromCharCode(fs[i] + 1);
-  return parts.join('|') + '/' + fr + '/' +
-    String.fromCharCode(found[0] + 1, found[1] + 1, found[2] + 1, found[3] + 1);
+// ----- low-allocation state packing + numeric canonical hash -----
+// Frontier states are stored as 68-byte Uint8Arrays (cheaper to allocate/GC than
+// strings); dedup uses a 53-bit numeric canonical hash (columns order-independent).
+function pack(cols, free, found) {
+  const buf = new Uint8Array(68);
+  let p = 8;
+  for (let k = 0; k < 8; k++) { buf[k] = cols[k].length; const col = cols[k]; for (let j = 0; j < col.length; j++) buf[p++] = col[j]; }
+  for (let i = 0; i < 4; i++) buf[60 + i] = free[i] < 0 ? 255 : free[i];
+  for (let s = 0; s < 4; s++) buf[64 + s] = found[s];
+  return buf;
 }
-function decode(key) {
-  const slash = key.lastIndexOf('/'), slash2 = key.lastIndexOf('/', slash - 1);
-  const colsStr = key.slice(0, slash2), freeStr = key.slice(slash2 + 1, slash), foundStr = key.slice(slash + 1);
-  const colParts = colsStr.split('|'), cols = [];
-  for (let k = 0; k < 8; k++) { const s = colParts[k] || ''; const col = []; for (let j = 0; j < s.length; j++) col.push(s.charCodeAt(j) - 1); cols.push(col); }
-  const free = [-1, -1, -1, -1]; for (let i = 0; i < freeStr.length; i++) free[i] = freeStr.charCodeAt(i) - 1;
-  const found = [foundStr.charCodeAt(0) - 1, foundStr.charCodeAt(1) - 1, foundStr.charCodeAt(2) - 1, foundStr.charCodeAt(3) - 1];
-  return { cols, free, found };
+// unpack into reusable scratch working state (single-threaded per process)
+const _cols = [[], [], [], [], [], [], [], []], _free = [-1, -1, -1, -1], _found = [0, 0, 0, 0];
+function unpack(buf) {
+  let p = 8;
+  for (let k = 0; k < 8; k++) { const len = buf[k], col = _cols[k]; col.length = 0; for (let j = 0; j < len; j++) col.push(buf[p++]); }
+  for (let i = 0; i < 4; i++) { const v = buf[60 + i]; _free[i] = v === 255 ? -1 : v; }
+  for (let s = 0; s < 4; s++) _found[s] = buf[64 + s];
+  return { cols: _cols, free: _free, found: _found };
+}
+const _ch = new Array(8), _fr = [];
+function canonHash(cols, free, found) {
+  for (let k = 0; k < 8; k++) { let h = 2166136261 >>> 0; const col = cols[k]; for (let j = 0; j < col.length; j++) { h = (h ^ (col[j] + 1)) >>> 0; h = Math.imul(h, 16777619) >>> 0; } _ch[k] = h; }
+  _ch.sort((a, b) => a - b);
+  let a = 2166136261 >>> 0, b = 2166136261 >>> 0;
+  for (let k = 0; k < 8; k++) { a = Math.imul(a ^ _ch[k], 16777619) >>> 0; b = Math.imul(b ^ _ch[k], 0x85ebca6b) >>> 0; }
+  _fr.length = 0; for (let i = 0; i < 4; i++) if (free[i] >= 0) _fr.push(free[i]); _fr.sort((x, y) => x - y);
+  for (let i = 0; i < _fr.length; i++) { a = Math.imul(a ^ (_fr[i] + 1), 16777619) >>> 0; b = Math.imul(b ^ (_fr[i] + 1), 0x85ebca6b) >>> 0; }
+  for (let s = 0; s < 4; s++) { const v = found[s] + 1 + s * 20; a = Math.imul(a ^ v, 16777619) >>> 0; b = Math.imul(b ^ v, 0x85ebca6b) >>> 0; }
+  return (a & 0x7FFFFFFF) * 4194304 + (b & 0x3FFFFF); // 53-bit
 }
 
 const fsum = f => f[0] + f[1] + f[2] + f[3];
@@ -86,22 +99,20 @@ function solve(n, maxNodes) {
   const cols0 = rootCols(n), free0 = [-1, -1, -1, -1], found0 = [0, 0, 0, 0];
   if (autoFinish(cols0, free0, found0)) return { solved: true, nodes: 0 };
   const buckets = new Array(SCORE_MAX); for (let i = 0; i < SCORE_MAX; i++) buckets[i] = [];
-  const rootKey = encode(cols0, free0, found0);
-  const seen = new Set([rootKey]);
-  let top = score(cols0, free0, found0); buckets[top].push(rootKey);
+  const seen = new Set(); seen.add(canonHash(cols0, free0, found0));
+  let top = score(cols0, free0, found0); buckets[top].push(pack(cols0, free0, found0));
   let nodes = 0;
   while (true) {
     while (top >= 0 && buckets[top].length === 0) top--;
     if (top < 0) return { solved: false, nodes, exhausted: true };
     if (++nodes > maxNodes) return { solved: false, nodes, capped: true };
-    const key = buckets[top].pop();
-    const st = decode(key), cols = st.cols, free = st.free, found = st.found;
+    const st = unpack(buckets[top].pop()), cols = st.cols, free = st.free, found = st.found;
     if (fsum(found) === 52 || autoFinish(cols, free, found)) return { solved: true, nodes };
     const moves = genMoves(cols, free, found);
     for (let i = 0; i < moves.length; i++) {
       apply(moves[i], cols, free, found);
-      const ck = encode(cols, free, found);
-      if (!seen.has(ck)) { seen.add(ck); let sc = score(cols, free, found); if (sc >= SCORE_MAX) sc = SCORE_MAX - 1; buckets[sc].push(ck); if (sc > top) top = sc; }
+      const h = canonHash(cols, free, found);
+      if (!seen.has(h)) { seen.add(h); let sc = score(cols, free, found); if (sc >= SCORE_MAX) sc = SCORE_MAX - 1; buckets[sc].push(pack(cols, free, found)); if (sc > top) top = sc; }
       undo(moves[i], cols, free, found);
     }
   }
@@ -151,7 +162,8 @@ if (mode === 'bench') {
   for (let n = 1; n <= MAX; n++) if (n !== UNSOLVABLE && nodesArr[n] >= 0 && nodesArr[n] < cap) solvedNodes.push(nodesArr[n]);
   solvedNodes.sort((a, b) => a - b);
   const q = p => solvedNodes[Math.min(solvedNodes.length - 1, Math.floor(p * solvedNodes.length))];
-  const t1 = q(0.40), t2 = q(0.70), t3 = q(0.90); // Leicht/Mittel/Schwer thresholds; >=cap or >t3 = Experte
+  const t1 = q(0.34), t2 = q(0.67); // solved games split into terciles; capped (>=cap) = Experte
+  const t3 = cap;
   // tier chars: '0'..'4' ; 0=unknown 1=leicht 2=mittel 3=schwer 4=experte, '9'=unsolvable
   let out = '';
   for (let n = 1; n <= MAX; n++) {
@@ -160,7 +172,7 @@ if (mode === 'bench') {
     if (n === UNSOLVABLE || v === -1) t = 9;
     else if (v < 0) t = 0;
     else if (v >= cap) t = 4;
-    else if (v <= t1) t = 1; else if (v <= t2) t = 2; else if (v <= t3) t = 3; else t = 4;
+    else if (v <= t1) t = 1; else if (v <= t2) t = 2; else t = 3;
     out += String(t);
   }
   const js = `/* adFreeCell - precomputed difficulty tiers for deals 1..32000.
