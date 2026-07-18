@@ -728,7 +728,7 @@
     // 2. follow the cached winning line while we're still on it
     var idx = hintPlanKeys ? hintPlanKeys.indexOf(hintKey(state)) : -1;
     if (idx < 0) {                                    // off the plan -> compute a fresh consistent line
-      var path = E.solvePath(state, 100000);
+      var path = E.solvePath(state, 200000, 1200);   // time-bounded so a hard deal can't freeze the hint
       if (path && path.length) { rebuildHintPlan(path); idx = 0; }
     }
     if (idx >= 0 && hintPlan && idx < hintPlan.length) return moveToHint(hintPlan[idx]);
@@ -844,7 +844,7 @@
   var demoing = false, demoTimer = null;
   function showSolution() {
     if (demoing || won || finishing) return;
-    var path = E.solvePath(state, 60000);
+    var path = E.solvePath(state, 200000, 2500);
     if (!path || !path.length) { toast(T('hintStuck')); return; } // couldn't solve in budget
     demoing = true;
     clearHintVisual(); clearSelection(); setDeadEnd(false);

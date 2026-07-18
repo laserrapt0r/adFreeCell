@@ -266,37 +266,95 @@
     return { unsolvable: true };
   }
 
-  // Full move sequence to a winnable state (for "watch the solution"), or null.
-  // Best-first by foundation progress with parent pointers -> a directed,
-  // much shorter solution than a depth-first dive, and memory-light.
-  function solvePath(s, maxNodes) {
-    maxNodes = maxNodes || 60000;
+  // ---- solver used for hints and "watch the solution" ----
+  // Symmetry-reduced key: the order of the 8 columns and of the 4 free cells is
+  // irrelevant, so equivalent positions collapse to one. This alone shrinks the
+  // search space enormously (~6x fewer nodes, far fewer failures).
+  function canonKey(s) {
+    var cols = [];
+    for (var k = 0; k < 8; k++) {
+      var col = s.tableau[k], str = '';
+      for (var j = 0; j < col.length; j++) str += col[j].uid + ',';
+      cols.push(str);
+    }
+    cols.sort();
+    var fr = [];
+    for (var i = 0; i < 4; i++) if (s.free[i]) fr.push(s.free[i].uid);
+    fr.sort(function (a, b) { return a - b; });
+    return cols.join('|') + '#' + fr.join(',') + '#' + s.foundations.join(',');
+  }
+  // heuristic: reward cards home / empty columns / free cells, penalise a needed
+  // foundation card being buried (the real thing blocking progress).
+  function buriedCount(s) {
+    var b = 0;
+    for (var suit = 0; suit < 4; suit++) {
+      var need = s.foundations[suit] + 1;
+      if (need > 13) continue;
+      for (var c = 0; c < 8; c++) {
+        var col = s.tableau[c];
+        for (var i = 0; i < col.length; i++) {
+          if (col[i].suit === suit && col[i].rank === need) { b += col.length - 1 - i; break; }
+        }
+      }
+    }
+    return b;
+  }
+  function solveScore(s) {
+    var empt = 0, cell = 0, i;
+    for (i = 0; i < 4; i++) if (!s.free[i]) cell++;
+    for (i = 0; i < 8; i++) if (!s.tableau[i].length) empt++;
+    var v = foundationSum(s) * 6 + empt * 3 + cell - buriedCount(s) * 2 + 40;
+    return v < 0 ? 0 : v;
+  }
+  // moves for the search: drop symmetric destinations (only the first empty
+  // column and first free cell) to cut redundant branching.
+  function solveMoves(s) {
+    var moves = legalMoves(s), out = [], fe = -1, fc = -1, k, i;
+    for (k = 0; k < 8; k++) if (!s.tableau[k].length) { fe = k; break; }
+    for (i = 0; i < 4; i++) if (!s.free[i]) { fc = i; break; }
+    for (var m = 0; m < moves.length; m++) {
+      var d = moves[m].dst;
+      if (d.kind === 'tableau' && !s.tableau[d.col].length) { if (d.col !== fe) continue; }
+      else if (d.kind === 'free') { if (d.i !== fc) continue; }
+      out.push(moves[m]);
+    }
+    return out;
+  }
+
+  var SCORE_MAX = 400;
+  // Full move sequence to a winnable state (for hints / "watch the solution"), or
+  // null. Bounded by nodes AND wall-clock (maxMs) so a hard deal can't freeze the
+  // UI: it solves whatever is reachable in the time budget, else bails to a fallback.
+  function solvePath(s, maxNodes, maxMs) {
+    maxNodes = maxNodes || 100000;
+    var deadline = maxMs ? Date.now() + maxMs : Infinity;
     if (isWon(s)) return [];
     var start = clone(s);
-    var seen = {}; seen[stateKey(start)] = true;
+    var seen = {}; seen[canonKey(start)] = true;
     var nodeMove = [null], nodeParent = [-1]; // per node index (for path reconstruction)
-    var buckets = []; for (var b = 0; b < 53; b++) buckets.push([]);
-    var top = foundationSum(start); buckets[top].push({ idx: 0, s: start });
+    var buckets = []; for (var b = 0; b < SCORE_MAX; b++) buckets.push([]);
+    var top = solveScore(start); buckets[top].push({ idx: 0, s: start });
     var nodes = 0;
     function recon(idx) { var p = []; for (var j = idx; j > 0; j = nodeParent[j]) p.push(nodeMove[j]); return p.reverse(); }
     while (true) {
       while (top >= 0 && buckets[top].length === 0) top--;
       if (top < 0) return null;
       if (nodes++ > maxNodes) return null;
+      if ((nodes & 2047) === 0 && Date.now() > deadline) return null;
       var node = buckets[top].pop(), st = node.s;
       if (isWon(st) || (foundationSum(st) >= 36 && canAutoFinish(st))) return recon(node.idx);
-      var moves = legalMoves(st);
+      var moves = solveMoves(st);
       for (var i = 0; i < moves.length; i++) {
         var ns = clone(st);
         applyMove(ns, moves[i].src, moves[i].dst);
-        var k = stateKey(ns);
+        var k = canonKey(ns);
         if (seen[k]) continue;
         seen[k] = true;
         var ni = nodeMove.length;
         nodeMove.push(moves[i]); nodeParent.push(node.idx);
-        var f = foundationSum(ns);
-        buckets[f].push({ idx: ni, s: ns });
-        if (f > top) top = f;
+        var sc = solveScore(ns); if (sc >= SCORE_MAX) sc = SCORE_MAX - 1;
+        buckets[sc].push({ idx: ni, s: ns });
+        if (sc > top) top = sc;
       }
     }
   }
