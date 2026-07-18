@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>UITEST-RUNNING</title></head>
+<body>
+<!-- Headless UI smoke test (run in CI). Loads the game, checks it renders and
+     that a real drag move + undo work, then sets the document title to
+     UITEST-PASS / UITEST-FAIL for the CI job to read. -->
+<div id="log"></div>
+<iframe id="f" src="../index.html?game=1" style="width:1000px;height:640px;border:0"></iframe>
+<script>
+  var log = function (m) { document.getElementById('log').textContent += m + '\n'; };
+  var done = function (pass, m) { document.title = (pass ? 'UITEST-PASS' : 'UITEST-FAIL') + ': ' + m; log(m); };
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+  (async function () {
+    var f = document.getElementById('f');
+    await new Promise(function (r) { f.addEventListener('load', function () { setTimeout(r, 700); }); });
+    var W = f.contentWindow, doc = f.contentDocument;
+    try {
+      if (!W.FreeCellEngine || !W.FreeCellDeal) return done(false, 'engine/deal not loaded');
+      var n = doc.querySelectorAll('.card').length;
+      if (n !== 52) return done(false, 'expected 52 cards, got ' + n);
+      // deterministic geometry, isolate the move under test
+      doc.head.appendChild(Object.assign(doc.createElement('style'), { textContent: '.card{transition:none!important}' }));
+      W.Storage.setAutoCollect(false);
+
+      var PE = W.PointerEvent;
+      var ctr = function (el) { var b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+      var fire = function (t, el, x, y) { el.dispatchEvent(new PE(t, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, pointerType: 'mouse', isPrimary: true })); };
+
+      // drag the accessible card of column 1 (6 of spades, uid 45) to free cell 0
+      var card = doc.querySelector('.card[data-uid="45"]');
+      var free0 = doc.querySelectorAll('.slot.free')[0];
+      var a = ctr(card), b = ctr(free0);
+      fire('pointerdown', card, a.x, a.y);
+      fire('pointermove', doc, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      fire('pointermove', doc, b.x, b.y);
+      fire('pointerup', doc, b.x, b.y);
+      await sleep(60);
+      var moves = doc.getElementById('hud-moves').textContent;
+      if (moves !== '1') return done(false, 'drag move did not register (moves=' + moves + ')');
+
+      doc.getElementById('btn-undo').click();
+      await sleep(60);
+      var after = doc.getElementById('hud-moves').textContent;
+      if (after !== '0') return done(false, 'undo did not restore (moves=' + after + ')');
+
+      done(true, '52 cards render, drag move + undo work');
+    } catch (e) { done(false, 'exception: ' + (e && e.message || e)); }
+  })();
+</script>
+</body></html>

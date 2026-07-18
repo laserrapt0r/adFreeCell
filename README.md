@@ -1,5 +1,7 @@
 # adFreeCell ♠️♥️♦️♣️
 
+[![CI](https://github.com/laserrapt0r/adFreeCell/actions/workflows/ci.yml/badge.svg)](https://github.com/laserrapt0r/adFreeCell/actions/workflows/ci.yml)
+
 Classic **FreeCell** solitaire as a single, self-contained HTML5 game — with
 **no ads, no trackers and no nonsense**. It uses the same game numbers as the
 original Windows FreeCell (so *Game #617* is the same board for everyone),
@@ -136,6 +138,11 @@ node tools/test.js
 runs (with no dependencies) the deal verification, the rules-engine unit tests,
 and a search that solves several games *through the engine* to confirm the rules
 permit a full legal path to a win.
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs that on every
+push, plus a **headless-browser UI smoke test**
+([`tools/uitest.html`](tools/uitest.html)) that loads the game, checks all 52
+cards render and that a real drag move and Undo work.
 
 ## 🤖 Android app
 
