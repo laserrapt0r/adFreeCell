@@ -267,21 +267,34 @@
   }
 
   // ---- solver used for hints and "watch the solution" ----
-  // Symmetry-reduced key: the order of the 8 columns and of the 4 free cells is
-  // irrelevant, so equivalent positions collapse to one. This alone shrinks the
-  // search space enormously (~6x fewer nodes, far fewer failures).
-  function canonKey(s) {
-    var cols = [];
+  // Symmetry-reduced numeric key: the order of the 8 columns and of the 4 free
+  // cells is irrelevant, so equivalent positions collapse to one. Hashing
+  // numerically (no strings to build/sort) is a big constant-factor speedup per
+  // node; the symmetry reduction shrinks the search space enormously.
+  var _ch = new Array(8), _fr = [];
+  function canonHash(s) {
     for (var k = 0; k < 8; k++) {
-      var col = s.tableau[k], str = '';
-      for (var j = 0; j < col.length; j++) str += col[j].uid + ',';
-      cols.push(str);
+      var col = s.tableau[k], h = 2166136261;
+      for (var j = 0; j < col.length; j++) { h = (h ^ col[j].uid) >>> 0; h = Math.imul(h, 16777619) >>> 0; }
+      _ch[k] = h;
     }
-    cols.sort();
-    var fr = [];
-    for (var i = 0; i < 4; i++) if (s.free[i]) fr.push(s.free[i].uid);
-    fr.sort(function (a, b) { return a - b; });
-    return cols.join('|') + '#' + fr.join(',') + '#' + s.foundations.join(',');
+    _ch.sort(function (a, b) { return a - b; });
+    var a = 2166136261, b = 2166136261, i;
+    for (k = 0; k < 8; k++) { a = Math.imul(a ^ _ch[k], 16777619) >>> 0; b = Math.imul(b ^ _ch[k], 0x85ebca6b) >>> 0; }
+    _fr.length = 0;
+    for (i = 0; i < 4; i++) if (s.free[i]) _fr.push(s.free[i].uid);
+    _fr.sort(function (x, y) { return x - y; });
+    for (i = 0; i < _fr.length; i++) { a = Math.imul(a ^ _fr[i], 16777619) >>> 0; b = Math.imul(b ^ _fr[i], 0x85ebca6b) >>> 0; }
+    for (var sf = 0; sf < 4; sf++) { var v = s.foundations[sf] + 1 + sf * 20; a = Math.imul(a ^ v, 16777619) >>> 0; b = Math.imul(b ^ v, 0x85ebca6b) >>> 0; }
+    return (a & 0x7FFFFFFF) * 4194304 + (b & 0x3FFFFF); // 53-bit key
+  }
+  // apply every provably-safe card to its foundation (a forced move that can
+  // never hurt) and return those moves. Folding these into the search collapses
+  // whole subtrees and stops the solver shuffling safe cards around.
+  function autoplaySeq(s) {
+    var out = [], sm;
+    while ((sm = nextSafeMove(s))) { applyMove(s, sm.src, sm.dst); out.push(sm); }
+    return out;
   }
   // heuristic: reward cards home / empty columns / free cells, penalise a needed
   // foundation card being buried (the real thing blocking progress).
@@ -330,12 +343,22 @@
     var deadline = maxMs ? Date.now() + maxMs : Infinity;
     if (isWon(s)) return [];
     var start = clone(s);
-    var seen = {}; seen[canonKey(start)] = true;
-    var nodeMove = [null], nodeParent = [-1]; // per node index (for path reconstruction)
+    var rootSeq = autoplaySeq(start);            // forced safe moves before any choice
+    if (isWon(start)) return rootSeq;
+    var seen = new Set(); seen.add(canonHash(start));
+    var nodeSeq = [null], nodeParent = [-1];     // each edge = [chosen move, ...folded safe moves]
     var buckets = []; for (var b = 0; b < SCORE_MAX; b++) buckets.push([]);
-    var top = solveScore(start); buckets[top].push({ idx: 0, s: start });
+    var top = solveScore(start); if (top >= SCORE_MAX) top = SCORE_MAX - 1;
+    buckets[top].push({ idx: 0, s: start });
     var nodes = 0;
-    function recon(idx) { var p = []; for (var j = idx; j > 0; j = nodeParent[j]) p.push(nodeMove[j]); return p.reverse(); }
+    function recon(idx) {
+      var segs = [];
+      for (var j = idx; j > 0; j = nodeParent[j]) segs.push(nodeSeq[j]);
+      segs.reverse();
+      var p = rootSeq.slice();
+      for (var a = 0; a < segs.length; a++) { var seg = segs[a]; for (var c = 0; c < seg.length; c++) p.push(seg[c]); }
+      return p;
+    }
     while (true) {
       while (top >= 0 && buckets[top].length === 0) top--;
       if (top < 0) return null;
@@ -347,11 +370,12 @@
       for (var i = 0; i < moves.length; i++) {
         var ns = clone(st);
         applyMove(ns, moves[i].src, moves[i].dst);
-        var k = canonKey(ns);
-        if (seen[k]) continue;
-        seen[k] = true;
-        var ni = nodeMove.length;
-        nodeMove.push(moves[i]); nodeParent.push(node.idx);
+        var seq = autoplaySeq(ns); seq.unshift(moves[i]);   // chosen move + forced safe follow-ups
+        var key = canonHash(ns);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        var ni = nodeSeq.length;
+        nodeSeq.push(seq); nodeParent.push(node.idx);
         var sc = solveScore(ns); if (sc >= SCORE_MAX) sc = SCORE_MAX - 1;
         buckets[sc].push({ idx: ni, s: ns });
         if (sc > top) top = sc;
