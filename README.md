@@ -43,6 +43,10 @@ completely offline, thanks to a service worker that caches the whole game.
   Windows FreeCell you remember. Pick a number, share a number, replay a number.
 - **Guaranteed-solvable random games.** “New game” picks a random solvable deal
   (only the famously unsolvable **#11982** is skipped).
+- **Progress & difficulty.** Track how many of the 32000 deals you’ve solved,
+  jump to any number or the next unsolved one, and pick a deal by difficulty
+  (Easy / Medium / Hard / Expert). Every deal’s tier is precomputed offline by a
+  solver (`tools/rate-difficulty.js`) from its search effort.
 - **Supermoves.** Move a valid run of cards in one gesture, limited by the real
   FreeCell formula: *(1 + free cells) × 2^(empty columns)* — the game never lets
   you do something you couldn't do one card at a time.
