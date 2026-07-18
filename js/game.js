@@ -372,6 +372,7 @@
       var zc = 1000;
       drag.g.uids.forEach(function (u) { cardEls[u].classList.add('dragging'); cardEls[u].style.zIndex = zc++; });
       clearSelection();
+      highlightLegalTargets(drag.g);
     }
     e.preventDefault();
     drag.origins.forEach(function (o) {
@@ -387,6 +388,7 @@
     if (!drag) return;
     var d = drag; drag = null;
     highlightDrop(null);
+    clearLegalTargets();
     d.g.uids.forEach(function (u) { cardEls[u].classList.remove('dragging'); });
 
     if (!d.moved) { handleTap(d.uid, d.g); render(true); return; }
@@ -398,26 +400,31 @@
     render(true); // snap back
   }
 
+  function oneClick() { return window.Storage.oneClick; }
+
   function handleTap(uid, g) {
+    // with an active selection, a tap on a different card = move there
+    if (selected && !sameSrc(selected.src, g.src)) {
+      var loc = locate(uid);
+      var target = loc.kind === 'tableau' ? { kind: 'tableau', col: loc.col }
+        : loc.kind === 'foundation' ? { kind: 'foundation-zone' } : { kind: 'free', i: loc.i };
+      var dest = resolveDest(target, selected.uids);
+      if (dest && doMove(selected.src, dest)) return;
+      // fall through and treat the tapped card fresh
+    }
+    // tapped the already-selected card again
     if (selected && sameSrc(selected.src, g.src)) {
-      // tapped the selected card again -> send home if possible, else deselect
-      if (g.uids.length === 1) {
-        var dest = autoDest(uid);
-        if (dest) { doMove(g.src, dest); return; }
+      if (!oneClick() && g.uids.length === 1) {
+        var d = autoDest(uid); if (d) { doMove(g.src, d); return; }
       }
       clearSelection();
       return;
     }
-    if (selected) {
-      // try to move the current selection onto this card's column/zone
-      var loc = locate(uid);
-      var target = null;
-      if (loc.kind === 'tableau') target = { kind: 'tableau', col: loc.col };
-      else if (loc.kind === 'foundation') target = { kind: 'foundation-zone' };
-      else if (loc.kind === 'free') target = { kind: 'free', i: loc.i };
-      var dest = resolveDest(target, selected.uids);
-      if (dest && doMove(selected.src, dest)) return;
-      // otherwise re-select the tapped card
+    // no usable selection: one-click auto-moves; otherwise select
+    if (oneClick()) {
+      var auto = bestAutoDest(g);
+      if (auto && doMove(g.src, auto)) return;
+      // nowhere obvious -> select so the user can pick (e.g. a free cell)
     }
     setSelection(g);
   }
@@ -439,10 +446,12 @@
     clearSelection();
     selected = g;
     g.uids.forEach(function (u) { cardEls[u].classList.add('selected'); });
+    highlightLegalTargets(g);
   }
   function clearSelection() {
     if (selected) selected.uids.forEach(function (u) { cardEls[u] && cardEls[u].classList.remove('selected'); });
     selected = null;
+    clearLegalTargets();
   }
   function highlightDrop(dest) {
     slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (s) { s.classList.remove('drop-ok'); });
@@ -450,6 +459,46 @@
     if (dest.kind === 'free') slotEls.free[dest.i].classList.add('drop-ok');
     else if (dest.kind === 'foundation') slotEls.foundation[dest.i].classList.add('drop-ok');
     else if (dest.kind === 'tableau') slotEls.column[dest.col].classList.add('drop-ok');
+  }
+
+  // ---- highlight every legal destination for a picked-up run ----
+  function highlightLegalTargets(g) {
+    clearLegalTargets();
+    var lead = { suit: uidSuit(g.uids[0]), rank: uidRank(g.uids[0]) };
+    var one = g.uids.length === 1;
+    if (one && E.canToFoundation(state, lead)) slotEls.foundation[lead.suit].classList.add('legal-target');
+    if (one) for (var i = 0; i < 4; i++)
+      if (!state.free[i] && !(g.src.kind === 'free' && g.src.i === i)) slotEls.free[i].classList.add('legal-target');
+    for (var c = 0; c < 8; c++) {
+      if (g.src.kind === 'tableau' && g.src.col === c) continue;
+      var col = state.tableau[c];
+      if (col.length === 0) {
+        if (g.uids.length <= E.maxSupermove(state, true) && !(g.src.kind === 'tableau' && g.src.index === 0))
+          slotEls.column[c].classList.add('legal-target');
+      } else if (E.canStack(lead, col[col.length - 1]) && g.uids.length <= E.maxSupermove(state, false)) {
+        cardEls[col[col.length - 1].uid].classList.add('legal-target');
+      }
+    }
+  }
+  function clearLegalTargets() {
+    for (var u in cardEls) cardEls[u].classList.remove('legal-target');
+    slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (s) { s.classList.remove('legal-target'); });
+  }
+
+  // best automatic destination for a click/tap: foundation, then a tableau build
+  function bestAutoDest(g) {
+    var lead = { suit: uidSuit(g.uids[0]), rank: uidRank(g.uids[0]) };
+    if (g.uids.length === 1 && E.canToFoundation(state, lead)) return { kind: 'foundation', i: lead.suit };
+    var emptyCol = -1;
+    for (var c = 0; c < 8; c++) {
+      if (g.src.kind === 'tableau' && g.src.col === c) continue;
+      var col = state.tableau[c];
+      if (col.length === 0) { if (emptyCol < 0) emptyCol = c; continue; }
+      if (E.canStack(lead, col[col.length - 1]) && g.uids.length <= E.maxSupermove(state, false)) return { kind: 'tableau', col: c };
+    }
+    if (emptyCol >= 0 && g.uids.length <= E.maxSupermove(state, true) && !(g.src.kind === 'tableau' && g.src.index === 0))
+      return { kind: 'tableau', col: emptyCol };
+    return null;
   }
 
   // ================= game lifecycle =================
@@ -781,6 +830,7 @@
     buildLangSelect();
     seg('set-theme', window.Storage.theme, function (v) { window.Storage.setTheme(v); app.dataset.theme = v; });
     seg('set-autocollect', window.Storage.autoCollect ? '1' : '0', function (v) { window.Storage.setAutoCollect(v === '1'); });
+    seg('set-oneclick', window.Storage.oneClick ? '1' : '0', function (v) { window.Storage.setOneClick(v === '1'); });
     seg('set-sound', window.Storage.soundOn ? '1' : '0', function (v) { window.Storage.setSound(v === '1'); });
     seg('set-timer', window.Storage.showTimer ? '1' : '0', function (v) { window.Storage.setShowTimer(v === '1'); updateHud(); });
 
