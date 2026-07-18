@@ -339,6 +339,7 @@
     if (won && !finishing) return;
     if (finishing) return;
     clearHintVisual();
+    if (kb.active) kbHide();
     var cardEl = e.target.closest ? e.target.closest('.card') : null;
     var p = relPoint(e);
     if (!cardEl) {
@@ -502,6 +503,55 @@
     if (emptyCol >= 0 && g.uids.length <= E.maxSupermove(state, true) && !(g.src.kind === 'tableau' && g.src.index === 0))
       return { kind: 'tableau', col: emptyCol };
     return null;
+  }
+
+  // ---------- keyboard control (cursor + Enter, reusing selection/move) ----------
+  var kb = { active: false, row: 'tab', i: 0 }; // row 'top' (free/foundation) or 'tab' (columns), i 0..7
+  function kbElement() {
+    if (kb.row === 'top') return kb.i < 4 ? slotEls.free[kb.i] : slotEls.foundation[kb.i - 4];
+    var col = state.tableau[kb.i];
+    return col.length ? cardEls[col[col.length - 1].uid] : slotEls.column[kb.i];
+  }
+  function paintCursor() {
+    for (var u in cardEls) cardEls[u].classList.remove('kb-cursor');
+    slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (s) { s.classList.remove('kb-cursor'); });
+    if (!kb.active || won) return;
+    var el = kbElement(); if (el) el.classList.add('kb-cursor');
+  }
+  function kbHide() { kb.active = false; paintCursor(); }
+  function kbNav(fn) { if (kb.active) fn(); else kb.active = true; paintCursor(); }
+  function grabColumnRun(col) {
+    var column = state.tableau[col];
+    if (!column.length) return null;
+    var d = column.length - 1;
+    while (d > 0 && E.isRun(column, d - 1)) d--; // longest movable run at the accessible end
+    return grabbable(column[d].uid);
+  }
+  function kbEnter() {
+    if (!kb.active) { kb.active = true; paintCursor(); return; }
+    if (selected) {
+      var dest = kb.row === 'top' ? (kb.i < 4 ? { kind: 'free', i: kb.i } : { kind: 'foundation-zone' }) : { kind: 'tableau', col: kb.i };
+      var d = resolveDest(dest, selected.uids);
+      if (d && doMove(selected.src, d)) { paintCursor(); return; }
+      window.Sfx.play('bad');
+      return;
+    }
+    var g = null;
+    if (kb.row === 'top' && kb.i < 4 && state.free[kb.i]) g = grabbable(state.free[kb.i].uid);
+    else if (kb.row === 'tab') g = grabColumnRun(kb.i);
+    if (g) { setSelection(g); window.Sfx.play('pick'); paintCursor(); }
+    else window.Sfx.play('bad');
+  }
+  function onKeyGame(e) {
+    var k = e.key;
+    if (k === 'ArrowLeft') { e.preventDefault(); kbNav(function () { kb.i = Math.max(0, kb.i - 1); }); }
+    else if (k === 'ArrowRight') { e.preventDefault(); kbNav(function () { kb.i = Math.min(7, kb.i + 1); }); }
+    else if (k === 'ArrowUp') { e.preventDefault(); kbNav(function () { kb.row = 'top'; }); }
+    else if (k === 'ArrowDown') { e.preventDefault(); kbNav(function () { kb.row = 'tab'; }); }
+    else if (k === 'Enter' || k === ' ') { e.preventDefault(); kbEnter(); }
+    else if (k === 'Escape') { clearSelection(); }
+    else return false;
+    return true;
   }
 
   // ================= game lifecycle =================
@@ -902,10 +952,13 @@
     // keyboard shortcuts
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-      else if (e.key.toLowerCase() === 'u') undo();
-      else if (e.key.toLowerCase() === 'h') hint();
-      else if (e.key.toLowerCase() === 'n') openSelect();
+      if (document.querySelector('.overlay.show')) return; // overlays handle their own keys
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+      var kl = e.key.toLowerCase();
+      if (kl === 'u') { undo(); return; }
+      if (kl === 'h') { hint(); return; }
+      if (kl === 'n') { openSelect(); return; }
+      if (!won) onKeyGame(e);
     });
 
     window.addEventListener('resize', function () { render(false); });
