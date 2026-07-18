@@ -20,9 +20,26 @@ const OUT = path.join(__dirname, '..', 'js', 'cards-sprite.js');
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 const SUITS = ['c', 'd', 'h', 's'];
 
+// Presentation attributes on the root <svg> (crucially `fill`, which is red for
+// hearts/diamonds) are inherited by the child paths. When we drop the root <svg>
+// we must re-apply them to the wrapping <g>, or the red suits fall back to black.
+const DROP_ATTRS = new Set([
+  'version', 'baseProfile', 'xmlns', 'xmlns:xlink', 'viewBox',
+  'width', 'height', 'x', 'y', 'id', 'preserveAspectRatio',
+]);
+function carryAttrs(openTag) {
+  const attrs = openTag.replace(/^<svg/, '').replace(/>$/, '');
+  const out = [];
+  const re = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*"([^"]*)"/g;
+  let m;
+  while ((m = re.exec(attrs))) if (!DROP_ATTRS.has(m[1])) out.push(`${m[1]}="${m[2]}"`);
+  return out.length ? ' ' + out.join(' ') : '';
+}
+
 function buildGroup(name) {
   const file = path.join(CARDS_DIR, name + '.svg');
   let svg = fs.readFileSync(file, 'utf8');
+  const openTag = (svg.match(/<svg[^>]*>/) || ['<svg>'])[0];
   // keep only the inner content of the root <svg>…</svg>
   let inner = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
   // namespace the two shared ids and every reference to them
@@ -31,7 +48,7 @@ function buildGroup(name) {
     .replace(/id="numeral"/g, `id="${name}_numeral"`)
     .replace(/#suit/g, `#${name}_suit`)
     .replace(/#numeral/g, `#${name}_numeral`);
-  return `<g id="card_${name}">${inner}</g>`;
+  return `<g id="card_${name}"${carryAttrs(openTag)}>${inner}</g>`;
 }
 
 const groups = [];
