@@ -48,18 +48,29 @@
     var W = play.clientWidth, H = play.clientHeight;
     var Ncol = 8;
     var k = 0.15;              // gap as a fraction of card width
-    var sg = 0.36;             // gap between top zone and tableau (x card height)
-    var L0 = 13;               // design column length used to size cards
+    var sg = 0.30;             // gap between top zone and tableau (x card height)
     var fr = 0.26;             // max fan as a fraction of card height
 
     var cwByW = W / (Ncol + (Ncol + 1) * k);
+    // Design column length for the height reserve, adapted to the viewport: a
+    // tall screen affords the full 13-card reserve (deep columns stay readable);
+    // a wide/short screen (phone landscape) uses a shorter reserve so the cards
+    // stay large — deeper columns just compress the fan to fit.
+    var L0 = 1 + ((H / cwByW - 2 * k) / R - (2 + sg)) / fr;
+    L0 = Math.max(6, Math.min(13, L0));
     var cwByH = H / (2 * k + R * (2 + sg + (L0 - 1) * fr));
     var cw = Math.min(cwByW, cwByH);
     cw = Math.max(30, Math.min(cw, 150));
 
     var gap = k * cw;
     var ch = R * cw;
-    var boardW = Ncol * cw + (Ncol - 1) * gap;
+    // spread the columns into spare horizontal room (capped) so a height-limited
+    // board doesn't sit tiny in the middle of a wide phone screen
+    var minBoard = Ncol * cw + (Ncol - 1) * gap;
+    var slack = W - 2 * gap - minBoard;
+    var extra = slack > 0 ? Math.min(slack / (Ncol - 1), cw * 0.5) : 0;
+    var step = cw + gap + extra;
+    var boardW = Ncol * cw + (Ncol - 1) * (gap + extra);
     var originX = Math.max(gap, (W - boardW) / 2);
     var topY = gap * 1.2;
     var tableauY = topY + ch + sg * ch;
@@ -70,13 +81,15 @@
     var availH = H - tableauY - gap;
     var fanMax = fr * ch;
     var fan = fanMax;
-    if (maxLen > 1) fan = Math.min(fanMax, Math.max(ch * 0.13, (availH - ch) / (maxLen - 1)));
+    // taller-than-design columns simply compress the fan so they always fit
+    // (the accessible bottom card stays fully visible); no hard minimum
+    if (maxLen > 1) fan = Math.min(fanMax, (availH - ch) / (maxLen - 1));
 
     var colX = [], i;
-    for (i = 0; i < 8; i++) colX.push(originX + i * (cw + gap));
+    for (i = 0; i < 8; i++) colX.push(originX + i * step);
 
     // pull the free-cell group left and the foundation group right so the two
-    // sets of four read as clearly separate (uses spare horizontal margin)
+    // sets of four read as clearly separate (uses any spare horizontal margin)
     var sep = Math.min(cw * 0.55, Math.max(0, originX - gap));
     m = {
       W: W, H: H, cw: cw, ch: ch, gap: gap,
@@ -1233,7 +1246,7 @@
     seg('set-lefty', window.Storage.lefty ? '1' : '0', function (v) { window.Storage.setLefty(v === '1'); render(false); });
 
     document.getElementById('btn-share').onclick = shareApp;
-    document.getElementById('btn-donate').onclick = openDonate;
+    document.getElementById('btn-donate').onclick = function () { show('overlay-tip'); }; // ask first, don't jump straight to PayPal
     document.getElementById('btn-tip-send').onclick = function () { openDonate(); hideTip(); };
     document.getElementById('btn-tip-later').onclick = hideTip;
     document.getElementById('overlay-tip').addEventListener('pointerdown', function (e) {

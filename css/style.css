@@ -460,12 +460,23 @@ html, body {
 
 /* Landscape phones: tighten the bars so the board gets the room */
 @media (max-height: 520px) {
-  #topbar { padding: 5px 12px; }
-  .hud-label { font-size: 0.56rem; }
-  .hud-value { font-size: 0.92rem; }
-  .icon-btn { width: 34px; height: 34px; }
-  #controls { padding: 5px 10px; padding-bottom: calc(5px + env(safe-area-inset-bottom)); }
-  .ctl { padding: 8px 6px; font-size: 0.76rem; }
+  #topbar { padding: 3px 10px; }
+  #brand { font-size: 1.05rem; }
+  .hud-label { font-size: 0.52rem; }
+  .hud-value { font-size: 0.85rem; }
+  .top-right { gap: 5px; }
+  .icon-btn { width: 32px; height: 32px; }
+  .icon-btn svg { width: 17px; height: 17px; }
+  #controls { padding: 4px 8px; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  .ctl { padding: 6px 5px; font-size: 0.72rem; }
+}
+@media (max-height: 400px) {
+  #topbar { padding: 2px 8px; }
+  #brand { font-size: 0.95rem; }
+  .icon-btn { width: 29px; height: 29px; }
+  .icon-btn svg { width: 15px; height: 15px; }
+  #controls { padding: 3px 6px; padding-bottom: calc(3px + env(safe-area-inset-bottom)); }
+  .ctl { padding: 5px 4px; font-size: 0.68rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

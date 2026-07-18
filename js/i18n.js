@@ -786,6 +786,19 @@
     },
   };
 
+  // external-link note for the donation popup, merged into every language
+  var TIPEXT = {
+    de: 'Öffnet PayPal in einem neuen Tab.', en: 'Opens PayPal in a new tab.',
+    es: 'Abre PayPal en una pestaña nueva.', fr: 'Ouvre PayPal dans un nouvel onglet.',
+    it: 'Apre PayPal in una nuova scheda.', pt: 'Abre o PayPal num novo separador.',
+    nl: 'Opent PayPal in een nieuw tabblad.', pl: 'Otwiera PayPal w nowej karcie.',
+    zh: '在新标签页中打开 PayPal。', 'zh-Hant': '在新分頁中開啟 PayPal。',
+    ja: 'PayPal を新しいタブで開きます。', ar: 'يفتح PayPal في علامة تبويب جديدة.',
+    ko: '새 탭에서 PayPal을 엽니다.', ru: 'Откроет PayPal в новой вкладке.',
+    tr: 'PayPal\'ı yeni bir sekmede açar.',
+  };
+  Object.keys(TIPEXT).forEach(function (l) { if (STRINGS[l]) STRINGS[l].tipExternal = TIPEXT[l]; });
+
   var SUPPORTED = Object.keys(STRINGS);
   var RTL = { ar: true };
   var current = 'en';
