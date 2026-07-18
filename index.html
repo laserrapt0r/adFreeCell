@@ -87,6 +87,15 @@
           <button id="btn-select-random" class="btn btn-ghost" data-i18n="randomGame">Zufällig</button>
         </div>
         <p id="select-status" class="select-status"></p>
+        <div id="select-diff" class="diff-choices hidden">
+          <span class="diff-label" data-i18n="byDifficulty">Nach Schwierigkeit</span>
+          <div class="diff-btns">
+            <button class="diff-btn" data-tier="1" data-i18n="diff1">Leicht</button>
+            <button class="diff-btn" data-tier="2" data-i18n="diff2">Mittel</button>
+            <button class="diff-btn" data-tier="3" data-i18n="diff3">Schwer</button>
+            <button class="diff-btn" data-tier="4" data-i18n="diff4">Experte</button>
+          </div>
+        </div>
         <button id="btn-select-unsolved" class="btn btn-ghost" data-i18n="nextUnsolved">Nächstes ungelöstes</button>
         <div class="row">
           <button id="btn-select-cancel" class="btn btn-ghost" data-i18n="cancel">Abbrechen</button>
@@ -199,6 +208,7 @@
   <script src="js/storage.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/difficulty.js"></script>
   <script src="js/game.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

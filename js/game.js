@@ -914,6 +914,9 @@
       if (n == null) { toast(T('allSolved')); return; }
       hide('overlay-select'); newGame(n);
     };
+    document.querySelectorAll('#select-diff .diff-btn').forEach(function (b) {
+      b.onclick = function () { hide('overlay-select'); newGame(randomOfTier(+b.dataset.tier)); };
+    });
     document.getElementById('btn-select-start').onclick = function () {
       var v = parseInt(document.getElementById('select-number').value, 10);
       if (!v || v < 1) v = D.randomSolvableNumber();
@@ -967,9 +970,20 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) { saveCurrent(); } });
   }
 
+  // difficulty tiers (from js/difficulty.js, if computed)
+  var Diff = (window.Difficulty && window.Difficulty.tiers) ? window.Difficulty : null;
+  function tierOf(n) { return (!Diff || n < 1 || n > Diff.tiers.length) ? 0 : (+Diff.tiers[n - 1]) || 0; }
+  function tierName(t) { return (t >= 1 && t <= 4) ? T('diff' + t) : ''; }
+  function randomOfTier(tier) {
+    if (!Diff) return D.randomSolvableNumber();
+    for (var i = 0; i < 4000; i++) { var n = 1 + Math.floor(Math.random() * Diff.tiers.length); if (n !== 11982 && tierOf(n) === tier) return n; }
+    return D.randomSolvableNumber();
+  }
+
   function openSelect() {
     var inp = document.getElementById('select-number');
     inp.value = state ? state.number : '';
+    document.getElementById('select-diff').classList.toggle('hidden', !Diff);
     updateSelectStatus();
     show('overlay-select');
     setTimeout(function () { inp.focus(); inp.select(); }, 50);
@@ -980,9 +994,13 @@
     var el = document.getElementById('select-status');
     el.className = 'select-status';
     if (!v || v < 1 || v > 32000) { el.textContent = ''; return; }
-    if (v === 11982) { el.textContent = T('statusUnsolvable'); el.classList.add('is-unsolvable'); }
-    else if (window.Storage.isSolved(v)) { el.textContent = T('statusSolved'); el.classList.add('is-solved'); }
-    else el.textContent = T('statusUnsolved');
+    var msg;
+    if (v === 11982) { msg = T('statusUnsolvable'); el.classList.add('is-unsolvable'); }
+    else if (window.Storage.isSolved(v)) { msg = T('statusSolved'); el.classList.add('is-solved'); }
+    else msg = T('statusUnsolved');
+    var t = tierOf(v);
+    if (t >= 1 && t <= 4) msg += ' · ' + tierName(t);
+    el.textContent = msg;
   }
 
   function seg(id, val, cb) {

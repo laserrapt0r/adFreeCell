@@ -1,7 +1,7 @@
 /* adFreeCell - service worker for offline play (PWA).
    Cache-first for the app shell so the game works with no network. Bump
    CACHE_VERSION whenever assets change to roll the cache. */
-const CACHE_VERSION = 'adfreecell-v11';
+const CACHE_VERSION = 'adfreecell-v12';
 
 const ASSETS = [
   './',
@@ -15,6 +15,7 @@ const ASSETS = [
   'js/storage.js',
   'js/i18n.js',
   'js/audio.js',
+  'js/difficulty.js',
   'js/game.js',
   'icons/icon.svg',
   'icons/icon-192.png',

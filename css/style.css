@@ -306,6 +306,19 @@ html, body {
 .select-status { font-size: 0.9rem; font-weight: 600; margin: 10px 0; min-height: 1.2em; }
 .select-status.is-solved { color: var(--accent-2); }
 .select-status.is-unsolvable { color: var(--danger); }
+.diff-choices { margin: 4px 0 10px; }
+.diff-label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+.diff-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.diff-btn {
+  border: 1.5px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--text);
+  border-radius: 10px; padding: 8px 12px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  transition: background .12s ease, transform .12s ease;
+}
+.diff-btn:hover { background: rgba(255, 255, 255, 0.14); transform: translateY(-1px); }
+.diff-btn[data-tier="1"] { border-color: #37c978; }
+.diff-btn[data-tier="2"] { border-color: #ffd166; }
+.diff-btn[data-tier="3"] { border-color: #f2724b; }
+.diff-btn[data-tier="4"] { border-color: #e11d48; }
 
 /* toast */
 .toast {
