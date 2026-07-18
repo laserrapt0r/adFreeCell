@@ -513,7 +513,9 @@
     clearHintVisual();
     stopTiming();
     if (resumeState) {
-      state = resumeState.state;
+      state = deserializeState(resumeState.state);
+      undoStack = (resumeState.undo || []).map(deserializeState);
+      redoStack = (resumeState.redo || []).map(deserializeState);
       elapsedBase = resumeState.elapsedMs || 0;
     } else {
       state = E.newGame(number);
@@ -751,9 +753,35 @@
   }
 
   // ================= persistence =================
+  // compact (uid-based) state serialization so the undo/redo history can be
+  // persisted across a reload without bloating localStorage
+  function cardFromUid(uid) { var suit = uidSuit(uid); return { suit: suit, rank: uid - suit * 13, uid: uid }; }
+  function serializeState(s) {
+    return {
+      n: s.number, m: s.moves,
+      f: s.free.map(function (c) { return c ? c.uid : 0; }),
+      d: s.foundations.slice(),
+      t: s.tableau.map(function (col) { return col.map(function (c) { return c.uid; }); }),
+    };
+  }
+  function deserializeState(o) {
+    return {
+      number: o.n, moves: o.m,
+      free: o.f.map(function (u) { return u ? cardFromUid(u) : null; }),
+      foundations: o.d.slice(),
+      tableau: o.t.map(function (col) { return col.map(cardFromUid); }),
+    };
+  }
   function saveCurrent() {
     if (won) return;
-    window.Storage.saveCurrent({ number: state.number, state: state, elapsedMs: elapsedNow() });
+    var CAP = 400; // keep the last N undo/redo steps
+    window.Storage.saveCurrent({
+      number: state.number,
+      state: serializeState(state),
+      undo: undoStack.slice(-CAP).map(serializeState),
+      redo: redoStack.slice(-CAP).map(serializeState),
+      elapsedMs: elapsedNow(),
+    });
   }
 
   // ================= toast & confetti =================
@@ -968,7 +996,7 @@
     var g = parseInt(params.get('game'), 10);
     if (g && g > 0) { newGame(g); return; }
     var saved = window.Storage.loadCurrent();
-    if (saved && saved.state && !E.isWon(saved.state)) newGame(saved.number, saved);
+    if (saved && saved.state && saved.state.t) newGame(saved.number, saved);
     else newGame(D.randomSolvableNumber());
   }
 
