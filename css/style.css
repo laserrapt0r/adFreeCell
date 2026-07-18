@@ -53,6 +53,18 @@ html, body {
   --accent: #ffd166; --accent-2: #8bd3a0;
   --felt-a: #4a5560; --felt-b: #333c46; --felt-c: #232a32;
 }
+#app[data-theme="coffee"] {
+  --accent: #ffce9e; --accent-2: #e6b980;
+  --felt-a: #6b4a34; --felt-b: #472f20; --felt-c: #2c1c12;
+}
+#app[data-theme="ocean"] {
+  --accent: #8fe3ff; --accent-2: #63dcc0;
+  --felt-a: #12667a; --felt-b: #0b4351; --felt-c: #072d37;
+}
+#app[data-theme="rose"] {
+  --accent: #ffc0d2; --accent-2: #f0a3bb;
+  --felt-a: #7a2f48; --felt-b: #531e30; --felt-c: #35131f;
+}
 /* colorblind-friendly deck: a higher-luminance vermilion for the red suits so
    red-blind (protanopia) players can tell red from black; black stays black,
    and the four suit SHAPES disambiguate the suits regardless of colour. */
@@ -302,6 +314,8 @@ html, body {
   padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 0.85rem;
 }
 .seg button.active { background: var(--accent-2); color: #06281a; }
+.seg-wrap { flex-wrap: wrap; }
+.seg-wrap button { flex: 1 0 auto; }
 
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
 .stat-box {

@@ -13,7 +13,8 @@
     motion: 'auto',       // animations: 'auto' (system) | 'full' | 'reduced'
     deadEndWarn: true,    // warn when the position is provably unwinnable
     showTimer: true,
-    theme: 'felt',        // 'felt' | 'midnight' | 'slate'
+    lefty: false,         // left-handed: swap free cells (right) and foundations (left)
+    theme: 'felt',        // 'felt' | 'midnight' | 'slate' | 'coffee' | 'ocean' | 'rose'
     tipShown: false,
     stats: {
       played: 0, won: 0,
@@ -55,6 +56,8 @@
     setDeadEndWarn: function (v) { state.deadEndWarn = !!v; persist(); },
     get showTimer() { return state.showTimer; },
     setShowTimer: function (v) { state.showTimer = !!v; persist(); },
+    get lefty() { return state.lefty; },
+    setLefty: function (v) { state.lefty = !!v; persist(); },
     get theme() { return state.theme; },
     setTheme: function (t) { state.theme = t; persist(); },
     get tipShown() { return state.tipShown; },

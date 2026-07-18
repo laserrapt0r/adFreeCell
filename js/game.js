@@ -84,6 +84,7 @@
       freeX: [colX[0] - sep, colX[1] - sep, colX[2] - sep, colX[3] - sep],
       foundX: [colX[4] + sep, colX[5] + sep, colX[6] + sep, colX[7] + sep],
     };
+    if (window.Storage.lefty) { var sw = m.freeX; m.freeX = m.foundX; m.foundX = sw; } // free cells right, foundations left
     play.style.setProperty('--cw', cw + 'px');
     play.style.setProperty('--ch', ch + 'px');
   }
@@ -1040,6 +1041,7 @@
     seg('set-oneclick', window.Storage.oneClick ? '1' : '0', function (v) { window.Storage.setOneClick(v === '1'); });
     seg('set-sound', window.Storage.soundOn ? '1' : '0', function (v) { window.Storage.setSound(v === '1'); });
     seg('set-timer', window.Storage.showTimer ? '1' : '0', function (v) { window.Storage.setShowTimer(v === '1'); updateHud(); });
+    seg('set-lefty', window.Storage.lefty ? '1' : '0', function (v) { window.Storage.setLefty(v === '1'); render(false); });
 
     document.getElementById('btn-share').onclick = shareApp;
     var bi = document.getElementById('btn-install');
