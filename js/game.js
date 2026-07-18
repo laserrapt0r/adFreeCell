@@ -733,8 +733,8 @@
     if (sm) return moveToHint(sm);
     // 2. follow the cached winning line while we're still on it, else compute one
     var idx = hintPlanKeys ? hintPlanKeys.indexOf(hintKey(state)) : -1;
-    if (idx < 0) {                                    // off the plan -> a fresh line (a partial one if it can't fully solve in time)
-      var path = E.solvePath(state, 200000, 1200);
+    if (idx < 0) {                                    // off the plan -> a fresh line (portfolio; no time limit, so it always aims for the full solution)
+      var path = E.solvePath(state, 200000);
       if (path && path.length) { rebuildHintPlan(path); idx = 0; }
     }
     var mv = (idx >= 0 && hintPlan && idx < hintPlan.length) ? hintPlan[idx] : null;
@@ -820,7 +820,7 @@
     if (mv.dst.kind === 'foundation') dest = { kind: 'foundation', suit: mv.dst.i };
     else if (mv.dst.kind === 'free') dest = { kind: 'free', i: mv.dst.i };
     else dest = { kind: 'tableau', col: mv.dst.col };
-    return { uids: uids, dest: dest };
+    return { src: mv.src, uids: uids, dest: dest };
   }
 
   // ---- hint presentation: pulse the source, ring the target, draw an arrow ----
@@ -858,6 +858,10 @@
     }
     var dp = hintDropPos(h.dest);
     hintFlying = true;
+    // reveal the placeholder behind the flying card if its source empties
+    // (clearHintVisual -> render restores the real state afterwards)
+    if (h.src.kind === 'free') slotEls.free[h.src.i].style.opacity = '1';
+    else if (h.src.kind === 'tableau' && h.src.index === 0) slotEls.column[h.src.col].style.opacity = '1';
     h.uids.forEach(function (uid, k) {
       var el = cardEls[uid];
       el.classList.remove('no-anim');
@@ -927,8 +931,9 @@
     window.Storage.recordResult(state.number, true, secs, state.moves);
     window.Storage.clearCurrent();
     window.Sfx.play('win');
-    document.getElementById('win-msg').textContent = T('wonMsg', { moves: state.moves, time: fmtTime(secs) });
+    document.getElementById('win-msg').textContent = T('wonMsg', { moves: state.moves, time: fmtWonTime(secs) });
     document.getElementById('win-progress').textContent = T('wonProgress', { number: state.number, n: window.Storage.solvedCount() });
+    if (!window.Storage.tipShown && window.Storage.solvedCount() >= 10) pendingTip = true; // gentle one-time ask
     clearSelection(); clearHintVisual(); setDeadEnd(false);
     var reveal = function () { show('overlay-win'); confetti(); };
     if (motionReduced()) setTimeout(reveal, 400);   // respect reduced motion: skip the bounce
@@ -962,6 +967,15 @@
   function fmtTime(s) {
     var mm = Math.floor(s / 60), ss = s % 60;
     return mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+  // time with an explicit unit, so "4:11" on the win screen can't be read as hours
+  function fmtWonTime(s) {
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    if (s >= 3600) {
+      var h = Math.floor(s / 3600);
+      return h + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60) + ' h';
+    }
+    return Math.floor(s / 60) + ':' + pad(s % 60) + ' min';
   }
 
   // ================= persistence =================
@@ -1172,9 +1186,9 @@
     });
 
     // win overlay
-    document.getElementById('btn-win-again').onclick = function () { hide('overlay-win'); restart(); };
+    document.getElementById('btn-win-again').onclick = function () { hide('overlay-win'); restart(); maybeShowTip(); };
     document.getElementById('btn-win-next').onclick = function () {
-      hide('overlay-win'); newGame(D.randomSolvableNumber());
+      hide('overlay-win'); newGame(D.randomSolvableNumber()); maybeShowTip();
     };
 
     // select overlay
@@ -1219,6 +1233,12 @@
     seg('set-lefty', window.Storage.lefty ? '1' : '0', function (v) { window.Storage.setLefty(v === '1'); render(false); });
 
     document.getElementById('btn-share').onclick = shareApp;
+    document.getElementById('btn-donate').onclick = openDonate;
+    document.getElementById('btn-tip-send').onclick = function () { openDonate(); hideTip(); };
+    document.getElementById('btn-tip-later').onclick = hideTip;
+    document.getElementById('overlay-tip').addEventListener('pointerdown', function (e) {
+      if (e.target.id === 'overlay-tip') hideTip();
+    });
     var bi = document.getElementById('btn-install');
     bi.onclick = function () { if (deferredInstall) { deferredInstall.prompt(); deferredInstall = null; bi.classList.add('hidden'); } };
     window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredInstall = e; bi.classList.remove('hidden'); });
@@ -1388,6 +1408,18 @@
     if (navigator.share) navigator.share(data).catch(function () {});
     else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast(T('linkCopied')); });
     else toast(url);
+  }
+
+  // ================= donation / tip =================
+  var PAYPAL_URL = 'https://www.paypal.com/paypalme/TommyWurzbacher';
+  var pendingTip = false;
+  function openDonate() { try { window.open(PAYPAL_URL, '_blank', 'noopener'); } catch (e) { location.href = PAYPAL_URL; } }
+  function showTip() { show('overlay-tip'); window.Storage.setTipShown(true); }
+  function hideTip() { hide('overlay-tip'); }
+  function maybeShowTip() { // one-time gentle ask, after the win screen is dismissed
+    if (!pendingTip) return;
+    pendingTip = false;
+    setTimeout(showTip, 350);
   }
 
   // ================= boot =================

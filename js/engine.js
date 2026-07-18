@@ -326,12 +326,17 @@
     }
     return r;
   }
-  function solveScore(s, useRuns) {
+  // Three complementary heuristics for the portfolio (no single one solves every
+  // deal, but together they crack almost all): 0 "run" = plain + a reward for
+  // ready-made runs (fastest on typical deals); 1 "bur4" = a strong unblock bias
+  // (cracks the hard deals the others get lost on); 2 "base" = plain.
+  function solveScore(s, variant) {
     var empt = 0, cell = 0, i;
     for (i = 0; i < 4; i++) if (!s.free[i]) cell++;
     for (i = 0; i < 8; i++) if (!s.tableau[i].length) empt++;
-    var v = foundationSum(s) * 6 + empt * 3 + cell - buriedCount(s) * 2 + 40;
-    if (useRuns) v += sortedRuns(s);
+    var f = foundationSum(s), bu = buriedCount(s);
+    if (variant === 1) { var vb = f * 7 + empt * 4 + cell * 2 - bu * 4 + 90; return vb < 0 ? 0 : vb; }
+    var v = f * 6 + empt * 3 + cell - bu * 2 + 40 + (variant === 0 ? sortedRuns(s) : 0);
     return v < 0 ? 0 : v;
   }
   // moves for the search: drop symmetric destinations (only the first empty
@@ -349,18 +354,18 @@
     return out;
   }
 
-  var SCORE_MAX = 460;
+  var SCORE_MAX = 520;
   // One best-first pass with a given heuristic. Returns { path } when solved, or
   // { partial, bestScore } — the line to the most-advanced position reached — so
   // a caller can still act (anytime) when the budget runs out.
-  function runSearch(s, maxNodes, deadline, useRuns) {
+  function runSearch(s, maxNodes, deadline, variant) {
     var start = clone(s);
     var rootSeq = autoplaySeq(start);            // forced safe moves before any choice
     if (isWon(start)) return { path: rootSeq };
     var seen = new Set(); seen.add(canonHash(start));
     var nodeSeq = [null], nodeParent = [-1];     // each edge = [chosen move, ...folded safe moves]
     var buckets = []; for (var b = 0; b < SCORE_MAX; b++) buckets.push([]);
-    var top = solveScore(start, useRuns); if (top >= SCORE_MAX) top = SCORE_MAX - 1;
+    var top = solveScore(start, variant); if (top >= SCORE_MAX) top = SCORE_MAX - 1;
     buckets[top].push({ idx: 0, s: start });
     var nodes = 0, bestScore = -1, bestIdx = 0;
     function recon(idx) {
@@ -377,7 +382,7 @@
       if (nodes++ > maxNodes) return { partial: recon(bestIdx), bestScore: bestScore };
       if ((nodes & 2047) === 0 && Date.now() > deadline) return { partial: recon(bestIdx), bestScore: bestScore };
       var node = buckets[top].pop(), st = node.s;
-      var sc0 = solveScore(st, useRuns);
+      var sc0 = solveScore(st, variant);
       if (sc0 > bestScore) { bestScore = sc0; bestIdx = node.idx; }   // track most-advanced node
       if (isWon(st) || (foundationSum(st) >= 36 && canAutoFinish(st))) return { path: recon(node.idx) };
       var moves = solveMoves(st);
@@ -390,7 +395,7 @@
         seen.add(key);
         var ni = nodeSeq.length;
         nodeSeq.push(seq); nodeParent.push(node.idx);
-        var sc = solveScore(ns, useRuns); if (sc >= SCORE_MAX) sc = SCORE_MAX - 1;
+        var sc = solveScore(ns, variant); if (sc >= SCORE_MAX) sc = SCORE_MAX - 1;
         buckets[sc].push({ idx: ni, s: ns });
         if (sc > top) top = sc;
       }
@@ -398,23 +403,26 @@
   }
 
   // Full move sequence to a winnable state (for hints / "watch the solution").
-  // A two-heuristic portfolio — a structure-aware pass first, then a plainer one —
-  // solves far more of the hard deals; each pass is bounded by nodes and shares
-  // the wall-clock budget so the UI never freezes. If neither fully solves in
-  // time, the best-progress line found is returned (anytime), so a hint is always
-  // available. Returns [] if already won, or null only if nothing at all was found.
+  // A three-heuristic portfolio (run -> bur4 -> base): no single heuristic solves
+  // every deal, but together they crack almost all of them, most instantly. Each
+  // pass is bounded by a node cap (a memory-safety limit — an unbounded search
+  // OOM-crashes the tab on the very hardest deals). maxMs is an OPTIONAL overall
+  // wall-clock deadline; the hint passes none, so it is never cut off by time.
+  // If no pass fully solves within the node cap, the best-progress line found is
+  // returned (anytime) so a hint is always available. Returns [] if already won.
   function solvePath(s, maxNodes, maxMs) {
-    maxNodes = maxNodes || 100000;
+    maxNodes = maxNodes || 200000;
     if (isWon(s)) return [];
-    var t0 = Date.now();
-    var end = maxMs ? t0 + maxMs : Infinity;
-    var mid = maxMs ? t0 + maxMs * 0.55 : Infinity;   // split the budget between the two heuristics
-    var r1 = runSearch(s, maxNodes, mid, true);
-    if (r1.path) return r1.path;
-    var r2 = runSearch(s, maxNodes, end, false);
-    if (r2.path) return r2.path;
-    var best = ((r2.bestScore || -1) >= (r1.bestScore || -1)) ? r2 : r1;
-    return best.partial || null;
+    var end = maxMs ? Date.now() + maxMs : Infinity;
+    var variants = [0, 1, 2];   // run (fast on typical), bur4 (hard-deal specialist), base
+    var firstPartial = null;
+    for (var p = 0; p < variants.length; p++) {
+      if (Date.now() > end) break;
+      var r = runSearch(s, maxNodes, end, variants[p]);
+      if (r.path) return r.path;
+      if (!firstPartial) firstPartial = r.partial;   // keep the primary heuristic's line for anytime
+    }
+    return firstPartial || null;
   }
 
   window.FreeCellEngine = {

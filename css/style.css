@@ -119,6 +119,13 @@ html, body {
 .icon-btn:hover { background: rgba(255, 255, 255, 0.16); transform: translateY(-1px); }
 .icon-btn:active { transform: scale(.94); }
 .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
+.donate-btn svg { fill: #ff7a8a; }
+.donate-btn:hover svg { fill: #ff5c70; }
+
+/* right-to-left languages (Arabic): flow the chrome RTL, but keep the card
+   board itself left-to-right (its layout is computed, order matters) */
+[dir="rtl"] #play { direction: ltr; }
+[dir="rtl"] .set-hint { text-align: inherit; }
 
 /* ---------------- play area ---------------- */
 #play {
