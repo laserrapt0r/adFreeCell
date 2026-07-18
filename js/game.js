@@ -962,6 +962,15 @@
     hudMoves.textContent = state.moves;
     hudTimeWrap.style.display = window.Storage.showTimer ? '' : 'none';
     hudTime.textContent = fmtTime(Math.round(elapsedNow() / 1000));
+    updateDiffBadge();
+  }
+  function updateDiffBadge() {
+    var el = document.getElementById('hud-diff');
+    if (!el) return;
+    var t = tierOf(state.number);
+    var name = tierName(t);
+    if (name) { el.textContent = name; el.dataset.tier = t; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
   }
   function updateButtons() {
     btnUndo.disabled = undoStack.length === 0;
@@ -1284,7 +1293,7 @@
   // difficulty tiers (from js/difficulty.js, if computed)
   var Diff = (window.Difficulty && window.Difficulty.tiers) ? window.Difficulty : null;
   function tierOf(n) { return (!Diff || n < 1 || n > Diff.tiers.length) ? 0 : (+Diff.tiers[n - 1]) || 0; }
-  function tierName(t) { return (t >= 1 && t <= 4) ? T('diff' + t) : ''; }
+  function tierName(t) { return (t >= 1 && t <= 6) ? T('diff' + t) : (t === 9 ? T('filterUnsolvable') : ''); }
   function randomOfTier(tier) {
     if (!Diff) return D.randomSolvableNumber();
     for (var i = 0; i < 4000; i++) { var n = 1 + Math.floor(Math.random() * Diff.tiers.length); if (n !== 11982 && tierOf(n) === tier) return n; }
@@ -1402,12 +1411,12 @@
   function renderStatsTiers() {
     var el = document.getElementById('stats-tiers');
     if (!Diff) { el.innerHTML = ''; return; }
-    var total = { 1: 0, 2: 0, 3: 0, 4: 0 }, solved = { 1: 0, 2: 0, 3: 0, 4: 0 };
-    for (var i = 0; i < Diff.tiers.length; i++) { var t = +Diff.tiers[i]; if (t >= 1 && t <= 4) total[t]++; }
-    for (var n = 1; n <= 32000; n++) { if (window.Storage.isSolved(n)) { var tt = tierOf(n); if (tt >= 1 && tt <= 4) solved[tt]++; } }
-    var colors = { 1: '#37c978', 2: '#ffd166', 3: '#f2724b', 4: '#e11d48' };
+    var total = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }, solved = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    for (var i = 0; i < Diff.tiers.length; i++) { var t = +Diff.tiers[i]; if (t >= 1 && t <= 6) total[t]++; }
+    for (var n = 1; n <= 32000; n++) { if (window.Storage.isSolved(n)) { var tt = tierOf(n); if (tt >= 1 && tt <= 6) solved[tt]++; } }
+    var colors = { 1: '#4ade80', 2: '#a3e635', 3: '#ffd166', 4: '#fb923c', 5: '#f87171', 6: '#c084fc' };
     var html = '';
-    for (var tier = 1; tier <= 4; tier++) {
+    for (var tier = 1; tier <= 6; tier++) {
       var pct = total[tier] ? Math.round((solved[tier] / total[tier]) * 100) : 0;
       html += '<div class="stats-tier-row">' +
         '<span class="stats-tier-name">' + T('diff' + tier) + '</span>' +

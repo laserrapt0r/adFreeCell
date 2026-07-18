@@ -38,6 +38,7 @@
           <span class="hud-label" data-i18n="gameLabel">Spiel</span>
           <span id="hud-game" class="hud-value">#1</span>
         </div>
+        <span id="hud-diff" class="diff-badge hidden"></span>
         <div class="hud-item">
           <span class="hud-label" data-i18n="movesLabel">Züge</span>
           <span id="hud-moves" class="hud-value">0</span>
@@ -112,10 +113,12 @@
         <div id="select-diff" class="diff-choices hidden">
           <span class="diff-label" data-i18n="byDifficulty">Nach Schwierigkeit</span>
           <div class="diff-btns">
-            <button class="diff-btn" data-tier="1" data-i18n="diff1">Leicht</button>
-            <button class="diff-btn" data-tier="2" data-i18n="diff2">Mittel</button>
-            <button class="diff-btn" data-tier="3" data-i18n="diff3">Schwer</button>
-            <button class="diff-btn" data-tier="4" data-i18n="diff4">Experte</button>
+            <button class="diff-btn" data-tier="1" data-i18n="diff1">Sehr leicht</button>
+            <button class="diff-btn" data-tier="2" data-i18n="diff2">Leicht</button>
+            <button class="diff-btn" data-tier="3" data-i18n="diff3">Mittel</button>
+            <button class="diff-btn" data-tier="4" data-i18n="diff4">Schwer</button>
+            <button class="diff-btn" data-tier="5" data-i18n="diff5">Sehr schwer</button>
+            <button class="diff-btn" data-tier="6" data-i18n="diff6">Extrem</button>
           </div>
         </div>
         <button id="btn-select-unsolved" class="btn btn-ghost" data-i18n="nextUnsolved">Nächstes ungelöstes</button>
@@ -163,10 +166,12 @@
         <p id="browse-progress" class="muted-line"></p>
         <div class="browse-filters" id="browse-filters">
           <button class="filt active" data-filt="all" data-i18n="filterAll">Alle</button>
-          <button class="filt" data-filt="1" data-i18n="diff1">Leicht</button>
-          <button class="filt" data-filt="2" data-i18n="diff2">Mittel</button>
-          <button class="filt" data-filt="3" data-i18n="diff3">Schwer</button>
-          <button class="filt" data-filt="4" data-i18n="diff4">Experte</button>
+          <button class="filt" data-filt="1" data-i18n="diff1">Sehr leicht</button>
+          <button class="filt" data-filt="2" data-i18n="diff2">Leicht</button>
+          <button class="filt" data-filt="3" data-i18n="diff3">Mittel</button>
+          <button class="filt" data-filt="4" data-i18n="diff4">Schwer</button>
+          <button class="filt" data-filt="5" data-i18n="diff5">Sehr schwer</button>
+          <button class="filt" data-filt="6" data-i18n="diff6">Extrem</button>
           <button class="filt" data-filt="9" data-i18n="filterUnsolvable">Unlösbar</button>
         </div>
         <div class="browse-filters" id="browse-solvedfilters">

@@ -799,6 +799,26 @@
   };
   Object.keys(TIPEXT).forEach(function (l) { if (STRINGS[l]) STRINGS[l].tipExternal = TIPEXT[l]; });
 
+  // 6-tier difficulty names, merged into every language
+  var DIFFS = {
+    de: { diff1: 'Sehr leicht', diff2: 'Leicht', diff3: 'Mittel', diff4: 'Schwer', diff5: 'Sehr schwer', diff6: 'Extrem' },
+    en: { diff1: 'Very easy', diff2: 'Easy', diff3: 'Medium', diff4: 'Hard', diff5: 'Very hard', diff6: 'Extreme' },
+    es: { diff1: 'Muy fácil', diff2: 'Fácil', diff3: 'Medio', diff4: 'Difícil', diff5: 'Muy difícil', diff6: 'Extremo' },
+    fr: { diff1: 'Très facile', diff2: 'Facile', diff3: 'Moyen', diff4: 'Difficile', diff5: 'Très difficile', diff6: 'Extrême' },
+    it: { diff1: 'Molto facile', diff2: 'Facile', diff3: 'Medio', diff4: 'Difficile', diff5: 'Molto difficile', diff6: 'Estremo' },
+    pt: { diff1: 'Muito fácil', diff2: 'Fácil', diff3: 'Médio', diff4: 'Difícil', diff5: 'Muito difícil', diff6: 'Extremo' },
+    nl: { diff1: 'Heel makkelijk', diff2: 'Makkelijk', diff3: 'Gemiddeld', diff4: 'Moeilijk', diff5: 'Heel moeilijk', diff6: 'Extreem' },
+    pl: { diff1: 'Bardzo łatwy', diff2: 'Łatwy', diff3: 'Średni', diff4: 'Trudny', diff5: 'Bardzo trudny', diff6: 'Ekstremalny' },
+    zh: { diff1: '非常简单', diff2: '简单', diff3: '中等', diff4: '困难', diff5: '非常困难', diff6: '极难' },
+    'zh-Hant': { diff1: '非常簡單', diff2: '簡單', diff3: '中等', diff4: '困難', diff5: '非常困難', diff6: '極難' },
+    ja: { diff1: 'とても簡単', diff2: '簡単', diff3: '普通', diff4: '難しい', diff5: 'とても難しい', diff6: '極限' },
+    ko: { diff1: '매우 쉬움', diff2: '쉬움', diff3: '보통', diff4: '어려움', diff5: '매우 어려움', diff6: '극악' },
+    ar: { diff1: 'سهل جدًا', diff2: 'سهل', diff3: 'متوسط', diff4: 'صعب', diff5: 'صعب جدًا', diff6: 'متطرف' },
+    ru: { diff1: 'Очень легко', diff2: 'Легко', diff3: 'Средне', diff4: 'Сложно', diff5: 'Очень сложно', diff6: 'Экстрим' },
+    tr: { diff1: 'Çok kolay', diff2: 'Kolay', diff3: 'Orta', diff4: 'Zor', diff5: 'Çok zor', diff6: 'Ekstrem' },
+  };
+  Object.keys(DIFFS).forEach(function (l) { if (STRINGS[l]) Object.assign(STRINGS[l], DIFFS[l]); });
+
   var SUPPORTED = Object.keys(STRINGS);
   var RTL = { ar: true };
   var current = 'en';
