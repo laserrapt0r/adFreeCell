@@ -48,27 +48,29 @@
     var W = play.clientWidth, H = play.clientHeight;
     var Ncol = 8;
     var k = 0.15;              // gap as a fraction of card width
-    var sg = 0.30;             // gap between top zone and tableau (x card height)
+    var sg = 0.36;             // gap between top zone and tableau (x card height)
     var fr = 0.26;             // max fan as a fraction of card height
+    var MOBILE_CW = 54;        // below this, treat as a cramped phone screen
 
     var cwByW = W / (Ncol + (Ncol + 1) * k);
-    // Design column length for the height reserve, adapted to the viewport: a
-    // tall screen affords the full 13-card reserve (deep columns stay readable);
-    // a wide/short screen (phone landscape) uses a shorter reserve so the cards
-    // stay large — deeper columns just compress the fan to fit.
-    var L0 = 1 + ((H / cwByW - 2 * k) / R - (2 + sg)) / fr;
-    L0 = Math.max(6, Math.min(13, L0));
-    var cwByH = H / (2 * k + R * (2 + sg + (L0 - 1) * fr));
-    var cw = Math.min(cwByW, cwByH);
+    function cwAt(l) { return Math.min(cwByW, H / (2 * k + R * (2 + sg + (l - 1) * fr))); }
+    // Default: the full 13-card height reserve — unchanged on normal/large screens
+    // (deep columns stay readable). Only when that leaves cards small (a wide/short
+    // phone screen) do we shorten the reserve so cards grow; deeper columns then
+    // just compress the fan to fit.
+    var L0 = 13, cw = cwAt(13);
+    var mobile = cw < MOBILE_CW;
+    if (mobile) while (cw < MOBILE_CW && L0 > 6) { L0--; cw = cwAt(L0); }
     cw = Math.max(30, Math.min(cw, 150));
 
     var gap = k * cw;
     var ch = R * cw;
-    // spread the columns into spare horizontal room (capped) so a height-limited
-    // board doesn't sit tiny in the middle of a wide phone screen
+    // only on those cramped screens: spread the columns into spare horizontal room
+    // so the board fills the width instead of sitting tiny in the middle; normal
+    // screens keep the original centred layout
     var minBoard = Ncol * cw + (Ncol - 1) * gap;
-    var slack = W - 2 * gap - minBoard;
-    var extra = slack > 0 ? Math.min(slack / (Ncol - 1), cw * 0.5) : 0;
+    var extra = (mobile && W - 2 * gap - minBoard > 0)
+      ? Math.min((W - 2 * gap - minBoard) / (Ncol - 1), cw * 0.5) : 0;
     var step = cw + gap + extra;
     var boardW = Ncol * cw + (Ncol - 1) * (gap + extra);
     var originX = Math.max(gap, (W - boardW) / 2);
