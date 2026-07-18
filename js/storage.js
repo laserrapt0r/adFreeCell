@@ -10,6 +10,8 @@
     autoCollect: true,    // auto-send safe cards to the foundations
     oneClick: true,       // single click/tap auto-moves a card to its best spot
     colorblind: false,    // brighten red suits (vermilion) for red-green CVD
+    motion: 'auto',       // animations: 'auto' (system) | 'full' | 'reduced'
+    deadEndWarn: true,    // warn when the position is provably unwinnable
     showTimer: true,
     theme: 'felt',        // 'felt' | 'midnight' | 'slate'
     tipShown: false,
@@ -47,6 +49,10 @@
     setOneClick: function (v) { state.oneClick = !!v; persist(); },
     get colorblind() { return state.colorblind; },
     setColorblind: function (v) { state.colorblind = !!v; persist(); },
+    get motion() { return state.motion; },
+    setMotion: function (v) { state.motion = v; persist(); },
+    get deadEndWarn() { return state.deadEndWarn; },
+    setDeadEndWarn: function (v) { state.deadEndWarn = !!v; persist(); },
     get showTimer() { return state.showTimer; },
     setShowTimer: function (v) { state.showTimer = !!v; persist(); },
     get theme() { return state.theme; },

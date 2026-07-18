@@ -31,6 +31,7 @@
           <span class="hud-label" data-i18n="timeLabel">Zeit</span>
           <span id="hud-time" class="hud-value">0:00</span>
         </div>
+        <span id="hud-deadend" class="deadend-tag hidden" data-i18n="deadEndShort" title="">⚠ Sackgasse</span>
       </div>
 
       <div class="top-right">
@@ -129,6 +130,7 @@
         <h2 data-i18n="statsTitle">Statistik</h2>
         <p id="stats-progress" class="muted-line"></p>
         <div class="stats-grid" id="stats-grid"></div>
+        <div id="stats-tiers" class="stats-tiers"></div>
         <div class="row">
           <button id="btn-stats-reset" class="btn btn-ghost danger" data-i18n="resetStats">Statistik zurücksetzen</button>
           <button id="btn-stats-close" class="btn btn-primary" data-i18n="close">Schließen</button>
@@ -187,6 +189,21 @@
               <small class="set-hint" data-i18n="colorblindHint">Kräftigeres Rot, klar von Schwarz unterscheidbar</small>
             </span>
             <div class="seg" id="set-colorblind"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
+          </div>
+          <div class="set-row">
+            <span class="set-label" data-i18n="motionLabel">Animationen</span>
+            <div class="seg" id="set-motion">
+              <button data-val="auto" data-i18n="motionAuto">Auto</button>
+              <button data-val="full" data-i18n="motionFull">Voll</button>
+              <button data-val="reduced" data-i18n="motionReduced">Reduziert</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <span class="set-label">
+              <span data-i18n="deadEndLabel">Sackgassen-Warnung</span>
+              <small class="set-hint" data-i18n="deadEndHint">Meldet, wenn kein Gewinn mehr möglich ist</small>
+            </span>
+            <div class="seg" id="set-deadend"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
           </div>
           <div class="set-row">
             <span class="set-label">

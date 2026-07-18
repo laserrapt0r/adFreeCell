@@ -85,6 +85,12 @@ html, body {
 .hud-item { display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
 .hud-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
 .hud-value { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.deadend-tag {
+  align-self: center; color: #ff6b6b; font-size: 0.78rem; font-weight: 800;
+  padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255, 107, 107, 0.5);
+  background: rgba(255, 107, 107, 0.12); white-space: nowrap; animation: deadpulse 1.4s ease infinite;
+}
+@keyframes deadpulse { 0%, 100% { opacity: 0.9; } 50% { opacity: 0.45; } }
 
 .top-right { display: flex; gap: 8px; }
 .icon-btn {
@@ -169,6 +175,11 @@ html, body {
 .slot.hint-target { background: rgba(55, 201, 120, 0.14); }
 .card.no-anim { transition: none; }
 .card.hint-fly { transition: transform 0.55s cubic-bezier(.35, .85, .35, 1); } /* slow hint glide */
+
+/* animation setting: full forces motion on; reduced turns card motion off */
+#app[data-motion="full"] .card { transition: transform .19s cubic-bezier(.2, .7, .3, 1), box-shadow .12s ease !important; }
+#app[data-motion="full"] .card.hint-fly { transition: transform 0.55s cubic-bezier(.35, .85, .35, 1) !important; }
+#app[data-motion="reduced"] .card, #app[data-motion="reduced"] .card.hint-fly { transition: none !important; }
 
 /* ---------------- bottom controls ---------------- */
 #controls {
@@ -301,6 +312,13 @@ html, body {
 }
 .stat-num { font-size: 1.5rem; font-weight: 800; }
 .stat-cap { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+.stats-tiers { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; text-align: left; }
+.stats-tier-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.stats-tier-name { width: 74px; font-weight: 700; }
+.stats-tier-bar { flex: 1; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.stats-tier-fill { height: 100%; border-radius: 4px; }
+.stats-tier-num { min-width: 92px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .license-note { font-size: 0.72rem; color: var(--muted); margin: 14px 0 4px; }
 .muted-line { font-size: 0.85rem; color: var(--muted); margin: 2px 0 10px; }

@@ -285,9 +285,30 @@
     updateHud();
     updateButtons();
     saveCurrent();
+    scheduleDeadEndCheck();
     if (E.isWon(state)) { onWin(); return; }
     if (window.Storage.autoCollect && !finishing) { safeSweep(); }
     else { maybeAutoFinish(); }
+  }
+
+  // Warn (debounced) when the position is provably unwinnable. The solver only
+  // returns "unsolvable" when it can exhaust the reachable space within the cap,
+  // i.e. in genuinely dead (usually late-game) positions.
+  var deadEndTimer = null, deadEndShown = false;
+  function scheduleDeadEndCheck() {
+    if (deadEndTimer) { clearTimeout(deadEndTimer); deadEndTimer = null; }
+    if (!window.Storage.deadEndWarn || !state || won || finishing) { setDeadEnd(false); return; }
+    deadEndTimer = setTimeout(function () {
+      if (won || finishing || !state || !window.Storage.deadEndWarn) return;
+      var res = E.findSolutionMove(state, 30000);
+      setDeadEnd(!!res.unsolvable);
+    }, 450);
+  }
+  function setDeadEnd(on) {
+    var el = document.getElementById('hud-deadend');
+    if (el) el.classList.toggle('hidden', !on);
+    if (on && !deadEndShown) { toast(T('deadEnd')); deadEndShown = true; }
+    else if (!on) deadEndShown = false;
   }
 
   // auto-collect obviously-safe cards, one at a time (animated)
@@ -299,7 +320,7 @@
     undoStack.push(snap); redoStack = [];
     window.Sfx.play('foundation');
     render(true);
-    updateHud(); updateButtons(); saveCurrent();
+    updateHud(); updateButtons(); saveCurrent(); scheduleDeadEndCheck();
     if (E.isWon(state)) { onWin(); return; }
     setTimeout(safeSweep, 150);
   }
@@ -406,7 +427,22 @@
 
   function oneClick() { return window.Storage.oneClick; }
 
+  var lastTapUid = -1, lastTapTime = 0;
+  // double-click/tap a card -> fly it home if it can go to a foundation,
+  // otherwise into the first open free cell
+  function doubleClickAction(uid) {
+    clearSelection();
+    var g = grabbable(uid);
+    if (!g || g.uids.length !== 1) return;
+    var dest = autoDest(uid); // foundation if legal
+    if (!dest) { for (var i = 0; i < 4; i++) if (!state.free[i]) { dest = { kind: 'free', i: i }; break; } }
+    if (dest) doMove(g.src, dest); else window.Sfx.play('bad');
+  }
+
   function handleTap(uid, g) {
+    var now = Date.now();
+    if (uid === lastTapUid && now - lastTapTime < 350) { lastTapUid = -1; doubleClickAction(uid); return; }
+    lastTapUid = uid; lastTapTime = now;
     // with an active selection, a tap on a different card = move there
     if (selected && !sameSrc(selected.src, g.src)) {
       var loc = locate(uid);
@@ -561,6 +597,7 @@
     undoStack = []; redoStack = [];
     clearSelection();
     clearHintVisual();
+    setDeadEnd(false);
     stopTiming();
     if (resumeState) {
       state = deserializeState(resumeState.state);
@@ -611,7 +648,7 @@
     won = false;
     clearSelection();
     render(true);
-    updateHud(); updateButtons(); saveCurrent();
+    updateHud(); updateButtons(); saveCurrent(); scheduleDeadEndCheck();
   }
   function redo() {
     if (!redoStack.length) return;
@@ -619,7 +656,7 @@
     state = redoStack.pop();
     clearSelection();
     render(true);
-    updateHud(); updateButtons(); saveCurrent();
+    updateHud(); updateButtons(); saveCurrent(); scheduleDeadEndCheck();
     if (E.isWon(state)) onWin();
   }
 
@@ -705,10 +742,21 @@
     var col = state.tableau[dest.col];
     return { x: m.colX[dest.col], y: m.tableauY + col.length * m.fan };
   }
+  function motionReduced() {
+    var mo = window.Storage.motion;
+    if (mo === 'reduced') return true;
+    if (mo === 'full') return false;
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
   function showHintVisual(h) {
     clearHintVisual();
     var target = destElement(h.dest);
     if (target) target.classList.add('hint-target');
+    if (motionReduced()) { // no fly: just pulse the source + ring the target
+      h.uids.forEach(function (uid) { cardEls[uid].classList.add('hintful'); });
+      hintTimer = setTimeout(clearHintVisual, 1500);
+      return;
+    }
     var dp = hintDropPos(h.dest);
     hintFlying = true;
     h.uids.forEach(function (uid, k) {
@@ -926,6 +974,8 @@
     buildLangSelect();
     seg('set-theme', window.Storage.theme, function (v) { window.Storage.setTheme(v); app.dataset.theme = v; });
     seg('set-colorblind', window.Storage.colorblind ? '1' : '0', function (v) { window.Storage.setColorblind(v === '1'); app.dataset.cb = v === '1' ? '1' : '0'; });
+    seg('set-motion', window.Storage.motion, function (v) { window.Storage.setMotion(v); app.dataset.motion = v; });
+    seg('set-deadend', window.Storage.deadEndWarn ? '1' : '0', function (v) { window.Storage.setDeadEndWarn(v === '1'); scheduleDeadEndCheck(); });
     seg('set-autocollect', window.Storage.autoCollect ? '1' : '0', function (v) { window.Storage.setAutoCollect(v === '1'); });
     seg('set-oneclick', window.Storage.oneClick ? '1' : '0', function (v) { window.Storage.setOneClick(v === '1'); });
     seg('set-sound', window.Storage.soundOn ? '1' : '0', function (v) { window.Storage.setSound(v === '1'); });
@@ -1075,6 +1125,24 @@
     document.getElementById('stats-grid').innerHTML = rows.map(function (r) {
       return '<div class="stat-box"><div class="stat-num">' + r[0] + '</div><div class="stat-cap">' + r[1] + '</div></div>';
     }).join('');
+    renderStatsTiers();
+  }
+  function renderStatsTiers() {
+    var el = document.getElementById('stats-tiers');
+    if (!Diff) { el.innerHTML = ''; return; }
+    var total = { 1: 0, 2: 0, 3: 0, 4: 0 }, solved = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    for (var i = 0; i < Diff.tiers.length; i++) { var t = +Diff.tiers[i]; if (t >= 1 && t <= 4) total[t]++; }
+    for (var n = 1; n <= 32000; n++) { if (window.Storage.isSolved(n)) { var tt = tierOf(n); if (tt >= 1 && tt <= 4) solved[tt]++; } }
+    var colors = { 1: '#37c978', 2: '#ffd166', 3: '#f2724b', 4: '#e11d48' };
+    var html = '';
+    for (var tier = 1; tier <= 4; tier++) {
+      var pct = total[tier] ? Math.round((solved[tier] / total[tier]) * 100) : 0;
+      html += '<div class="stats-tier-row">' +
+        '<span class="stats-tier-name">' + T('diff' + tier) + '</span>' +
+        '<span class="stats-tier-bar"><span class="stats-tier-fill" style="width:' + pct + '%;background:' + colors[tier] + '"></span></span>' +
+        '<span class="stats-tier-num">' + solved[tier] + ' / ' + total[tier] + '</span></div>';
+    }
+    el.innerHTML = html;
   }
 
   function shareApp() {
@@ -1091,6 +1159,7 @@
     window.I18n.apply(document);
     app.dataset.theme = window.Storage.theme;
     app.dataset.cb = window.Storage.colorblind ? '1' : '0';
+    app.dataset.motion = window.Storage.motion;
     buildSlots();
     wire();
 
