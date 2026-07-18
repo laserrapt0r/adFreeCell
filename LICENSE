@@ -25,8 +25,9 @@ SOFTWARE.
 The MIT license above covers the adFreeCell game code (HTML, CSS, JavaScript,
 icons and other original assets).
 
-It does NOT cover the playing-card artwork. The cards are the "SVG-cards" set by
-David Bellot (forked by Heor Havryshko / htdebeer) and are licensed separately
-under the GNU Lesser General Public License, version 2.1. The pristine source of
-that artwork ships with this project in `assets/svg-cards.svg`. See
-`LICENSES/CARDS-NOTICE.md` and `LICENSES/LGPL-2.1.txt` for the full terms.
+It does NOT cover the playing-card artwork. The cards are the
+"playing-cards-standard-deck" by younes touati and are licensed separately under
+the GNU Lesser General Public License, version 3.0. The pristine sources of that
+artwork ship with this project under `assets/cards/`. See
+`LICENSES/CARDS-NOTICE.md`, `LICENSES/LGPL-3.0.txt` and `LICENSES/GPL-3.0.txt`
+for the full terms.

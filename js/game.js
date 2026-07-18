@@ -11,6 +11,7 @@
 
   // suit index -> foundation slot is the same index: 0 club,1 diamond,2 heart,3 spade
   var SUIT_IS_RED = [false, true, true, false];
+  var SUIT_LETTER = ['c', 'd', 'h', 's']; // card artwork file/ids use these
 
   // ---- element refs ----
   var app = document.getElementById('app');
@@ -38,7 +39,7 @@
   var timerId = null, startTs = 0, elapsedBase = 0, timing = false;
 
   // ================= layout =================
-  var R = 244.640 / 169.075;   // card aspect (h / w)
+  var R = 314 / 225;           // card aspect (h / w)
 
   function computeMetrics() {
     var W = play.clientWidth, H = play.clientHeight;
@@ -171,10 +172,10 @@
         var el = document.createElement('div');
         el.className = 'card';
         el.dataset.uid = id;
-        var svgId = D.SUIT_ID[suit] + '_' + D.RANK_ID[rank];
-        // default preserveAspectRatio (xMidYMid meet) never distorts; the card
-        // box already matches the native 169.075:244.64 ratio, so it fills exactly.
-        el.innerHTML = '<svg viewBox="0 0 169.075 244.640">' +
+        var svgId = 'card_' + rank + SUIT_LETTER[suit];
+        // the card box matches the native 225:314 ratio, so the default
+        // preserveAspectRatio (meet) fills it exactly without distortion.
+        el.innerHTML = '<svg viewBox="0 0 225 314">' +
           '<use href="#' + svgId + '" xlink:href="#' + svgId + '"/></svg>';
         cardEls[id] = el;
         cardsLayer.appendChild(el);

@@ -58,8 +58,8 @@ completely offline, thanks to a service worker that caches the whole game.
 - **Three table themes:** Felt, Midnight and Slate.
 - **5 languages:** German, English, Spanish, French and Italian (auto-detected).
 - **Synthesized sound** via the Web Audio API — no audio files, works offline.
-- **Beautiful cards** from the well-known LGPL **SVG-cards** set (crisp at any
-  size).
+- **Clean, modern cards** from the LGPL **playing-cards-standard-deck** (crisp
+  vector art at any size).
 
 ---
 
@@ -95,9 +95,9 @@ adFreeCell/
 │   └── style.css              # Styling, themes, responsive layout
 ├── icons/                     # App icons (SVG + generated PNGs)
 ├── assets/
-│   └── svg-cards.svg          # Pristine LGPL card artwork (source)
+│   └── cards/                 # Pristine LGPL card artwork (1c.svg … 13s.svg)
 ├── js/
-│   ├── cards-sprite.js        # The card artwork embedded for offline use
+│   ├── cards-sprite.js        # The card artwork embedded for offline use (generated)
 │   ├── deal.js                # Card model + Microsoft FreeCell deal
 │   ├── engine.js              # Pure FreeCell rules engine (no DOM)
 │   ├── storage.js             # Settings, stats & resume (localStorage)
@@ -105,7 +105,8 @@ adFreeCell/
 │   ├── audio.js               # Web Audio sound effects
 │   └── game.js                # Rendering, input and game flow
 ├── tools/
-│   └── test.js                # Self-test (deal, rules, solvability)
+│   ├── test.js                # Self-test (deal, rules, solvability)
+│   └── build-cards.js         # Regenerates cards-sprite.js from assets/cards/
 ├── .github/workflows/
 │   └── deploy-pages.yml        # GitHub Pages deployment
 ├── LICENSES/
@@ -151,18 +152,18 @@ This project has **two** licenses:
 
 - **Game code** (HTML, CSS, JS, icons and original assets): **MIT** — see
   [`LICENSE`](LICENSE).
-- **Playing-card artwork** (`assets/svg-cards.svg`, embedded in
-  `js/cards-sprite.js`): the **SVG-cards** set by David Bellot (fork by
-  htdebeer), licensed under **LGPL-2.1** — see
-  [`LICENSES/CARDS-NOTICE.md`](LICENSES/CARDS-NOTICE.md) and
-  [`LICENSES/LGPL-2.1.txt`](LICENSES/LGPL-2.1.txt).
+- **Playing-card artwork** (`assets/cards/`, embedded in `js/cards-sprite.js`):
+  the **playing-cards-standard-deck** by younes touati, licensed under
+  **LGPL-3.0** — see [`LICENSES/CARDS-NOTICE.md`](LICENSES/CARDS-NOTICE.md),
+  [`LICENSES/LGPL-3.0.txt`](LICENSES/LGPL-3.0.txt) and
+  [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt).
 
-If you fork or redistribute adFreeCell, keep `assets/svg-cards.svg`, the cards
-notice and the LGPL text in place.
+If you fork or redistribute adFreeCell, keep `assets/cards/`, the cards notice
+and the LGPL/GPL texts in place.
 
 ## Credits
 
-- Playing cards: **SVG-cards** — David Bellot & htdebeer
-  (<https://github.com/htdebeer/SVG-cards>).
+- Playing cards: **playing-cards-standard-deck** — younes touati
+  (<https://github.com/younestouati/playing-cards-standard-deck>).
 - FreeCell was designed by **Paul Alfille**; the numbered-deal shuffle follows
   Microsoft's classic implementation.
