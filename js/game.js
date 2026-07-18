@@ -74,12 +74,15 @@
     var colX = [], i;
     for (i = 0; i < 8; i++) colX.push(originX + i * (cw + gap));
 
+    // pull the free-cell group left and the foundation group right so the two
+    // sets of four read as clearly separate (uses spare horizontal margin)
+    var sep = Math.min(cw * 0.55, Math.max(0, originX - gap));
     m = {
       W: W, H: H, cw: cw, ch: ch, gap: gap,
       topY: topY, tableauY: tableauY, fan: fan,
       colX: colX,
-      freeX: [colX[0], colX[1], colX[2], colX[3]],
-      foundX: [colX[4], colX[5], colX[6], colX[7]],
+      freeX: [colX[0] - sep, colX[1] - sep, colX[2] - sep, colX[3] - sep],
+      foundX: [colX[4] + sep, colX[5] + sep, colX[6] + sep, colX[7] + sep],
     };
     play.style.setProperty('--cw', cw + 'px');
     play.style.setProperty('--ch', ch + 'px');
@@ -645,7 +648,7 @@
     h.uids.forEach(function (u) { cardEls[u].classList.add('hintful'); });
     var target = destElement(h.dest);
     if (target) target.classList.add('hint-target');
-    drawHintArrow(cardEls[h.uids[0]], target);
+    drawHintArrow(h.uids[0], h.dest);
     hintTimer = setTimeout(clearHintVisual, 2000);
   }
   function clearHintVisual() {
@@ -655,10 +658,24 @@
     if (hintRAF) { cancelAnimationFrame(hintRAF); hintRAF = 0; }
     var ctx = fx.getContext('2d'); ctx.clearRect(0, 0, fx.width, fx.height);
   }
-  function centerOf(el) { var b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }
-  function drawHintArrow(fromEl, toEl) {
-    if (!fromEl || !toEl) return;
-    var a = centerOf(fromEl), b = centerOf(toEl);
+  // Arrow endpoints come from the logical layout (not element rects), so a card
+  // that is mid-animation can never throw the arrow off to the wrong place.
+  function playOffset() { var r = play.getBoundingClientRect(); return { x: r.left, y: r.top }; }
+  function cardCenterVP(uid) {
+    var p = computePositions()[uid]; if (!p) return null;
+    var o = playOffset(); return { x: o.x + p.x + m.cw / 2, y: o.y + p.y + m.ch / 2 };
+  }
+  function destCenterVP(dest) {
+    var o = playOffset();
+    if (dest.kind === 'foundation') return { x: o.x + m.foundX[dest.suit] + m.cw / 2, y: o.y + m.topY + m.ch / 2 };
+    if (dest.kind === 'free') return { x: o.x + m.freeX[dest.i] + m.cw / 2, y: o.y + m.topY + m.ch / 2 };
+    var col = state.tableau[dest.col];
+    var y = m.tableauY + (col.length ? (col.length - 1) * m.fan : 0);
+    return { x: o.x + m.colX[dest.col] + m.cw / 2, y: o.y + y + m.ch / 2 };
+  }
+  function drawHintArrow(fromUid, dest) {
+    var a = cardCenterVP(fromUid), b = destCenterVP(dest);
+    if (!a || !b) return;
     var ctx = fx.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     fx.width = innerWidth * dpr; fx.height = innerHeight * dpr;
