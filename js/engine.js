@@ -266,6 +266,41 @@
     return { unsolvable: true };
   }
 
+  // Full move sequence to a winnable state (for "watch the solution"), or null.
+  // Best-first by foundation progress with parent pointers -> a directed,
+  // much shorter solution than a depth-first dive, and memory-light.
+  function solvePath(s, maxNodes) {
+    maxNodes = maxNodes || 60000;
+    if (isWon(s)) return [];
+    var start = clone(s);
+    var seen = {}; seen[stateKey(start)] = true;
+    var nodeMove = [null], nodeParent = [-1]; // per node index (for path reconstruction)
+    var buckets = []; for (var b = 0; b < 53; b++) buckets.push([]);
+    var top = foundationSum(start); buckets[top].push({ idx: 0, s: start });
+    var nodes = 0;
+    function recon(idx) { var p = []; for (var j = idx; j > 0; j = nodeParent[j]) p.push(nodeMove[j]); return p.reverse(); }
+    while (true) {
+      while (top >= 0 && buckets[top].length === 0) top--;
+      if (top < 0) return null;
+      if (nodes++ > maxNodes) return null;
+      var node = buckets[top].pop(), st = node.s;
+      if (isWon(st) || (foundationSum(st) >= 36 && canAutoFinish(st))) return recon(node.idx);
+      var moves = legalMoves(st);
+      for (var i = 0; i < moves.length; i++) {
+        var ns = clone(st);
+        applyMove(ns, moves[i].src, moves[i].dst);
+        var k = stateKey(ns);
+        if (seen[k]) continue;
+        seen[k] = true;
+        var ni = nodeMove.length;
+        nodeMove.push(moves[i]); nodeParent.push(node.idx);
+        var f = foundationSum(ns);
+        buckets[f].push({ idx: ni, s: ns });
+        if (f > top) top = f;
+      }
+    }
+  }
+
   window.FreeCellEngine = {
     newGame: newGame,
     clone: clone,
@@ -286,5 +321,6 @@
     foundationSum: foundationSum,
     legalMoves: legalMoves,
     findSolutionMove: findSolutionMove,
+    solvePath: solvePath,
   };
 })();

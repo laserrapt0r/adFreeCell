@@ -672,12 +672,23 @@
   // fall back to a ranked heuristic. Returns { uids, dest } or { unsolvable }.
   function computeHint() {
     var res = E.findSolutionMove(state, 30000);
-    var mv = null;
-    if (res.solved) mv = res.move || E.nextFoundationMove(state) || E.nextSafeMove(state);
-    else if (res.unsolvable) return { unsolvable: true };
-    if (!mv) mv = heuristicMove();   // capped search -> heuristic
-    if (!mv) return null;
-    return moveToHint(mv);
+    if (res.unsolvable) return { unsolvable: true };
+    var solverMove = res.solved ? (res.move || E.nextFoundationMove(state) || E.nextSafeMove(state)) : null;
+    // Prefer the most intuitive move that provably keeps the game winnable, so
+    // the hint doesn't feel arbitrary (a safe card home / a sensible build)
+    // instead of a cryptic solver setup move.
+    var h = heuristicMove();
+    if (h) {
+      var lead = leadCardOf(h.src);
+      if (h.dst.kind === 'foundation' && E.isSafeAutoplay(state, lead)) return moveToHint(h); // always safe
+      if (res.solved) {
+        var after = E.clone(state);
+        E.applyMove(after, h.src, h.dst);
+        if (E.findSolutionMove(after, 30000).solved) return moveToHint(h); // verified not to lose
+      }
+    }
+    var mv = solverMove || h;
+    return mv ? moveToHint(mv) : null;
   }
 
   function leadCardOf(src) {
@@ -773,6 +784,50 @@
     for (var u in cardEls) cardEls[u].classList.remove('hint-target', 'hintful', 'hint-fly');
     slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (sl) { sl.classList.remove('hint-target'); });
     if (hintFlying) { hintFlying = false; render(false); } // snap the flown cards back to their real spots
+  }
+
+  // ---- "watch the solution": the solver plays a solution out, abortable ----
+  // The solver's solution is one consistent (if long) line; playing it move by
+  // move is reliable. Pace + batching bound the demo to ~26s regardless of
+  // length: short solutions play at a watchable speed, long ones fast-forward.
+  var demoing = false, demoTimer = null;
+  function showSolution() {
+    if (demoing || won || finishing) return;
+    var path = E.solvePath(state, 60000);
+    if (!path || !path.length) { toast(T('hintStuck')); return; } // couldn't solve in budget
+    demoing = true;
+    clearHintVisual(); clearSelection(); setDeadEnd(false);
+    toast(T('solutionShowing'));
+    var queue = path.slice();
+    var TARGET_MS = 26000, MIN_PACE = 10, MAX_TICKS = TARGET_MS / MIN_PACE;
+    var batch = Math.max(1, Math.ceil(path.length / MAX_TICKS));       // moves per frame for very long lines
+    var pace = batch > 1 ? MIN_PACE : Math.max(MIN_PACE, Math.min(360, Math.round(TARGET_MS / path.length)));
+    (function step() {
+      if (!demoing) return;
+      for (var b = 0; b < batch; b++) {
+        var mv = queue.shift() || E.nextFoundationMove(state);
+        if (!mv || E.isWon(state)) { finishDemo(); return; }
+        demoMove(mv, batch > 1);
+      }
+      demoTimer = setTimeout(step, pace);
+    })();
+  }
+  function demoMove(mv, silent) { // apply + render only; no undo/win/auto-collect pipeline
+    if (!E.applyMove(state, mv.src, mv.dst).ok) return;
+    if (!silent) playMoveSound(mv.dst);
+    render(true);
+    updateHud(); updateButtons();
+  }
+  function finishDemo() {
+    demoing = false; if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+    toast(T('solutionShown'));
+    var num = state.number;
+    setTimeout(function () { if (!demoing) newGame(num); }, 1200); // reset so it isn't recorded as solved
+  }
+  function abortDemo() {
+    if (!demoing) return;
+    demoing = false; if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+    newGame(state.number);
   }
 
   function onWin() {
@@ -933,6 +988,11 @@
     };
     document.getElementById('btn-settings').onclick = function () { show('overlay-settings'); };
     document.getElementById('btn-settings-close').onclick = function () { hide('overlay-settings'); };
+    document.getElementById('btn-solution').onclick = function () { hide('overlay-settings'); showSolution(); };
+    // any interaction stops the solution demo
+    ['pointerdown', 'keydown'].forEach(function (ev) {
+      document.addEventListener(ev, function (e) { if (demoing) { abortDemo(); e.stopPropagation(); e.preventDefault(); } }, true);
+    });
 
     // win overlay
     document.getElementById('btn-win-again').onclick = function () { hide('overlay-win'); restart(); };
