@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f5132" />
+  <meta name="description" content="adFreeCell – klassisches FreeCell-Solitär ohne Werbung, ohne Tracker. Offline spielbar und als App installierbar." />
+  <title>adFreeCell</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app" data-theme="felt">
+
+    <!-- Top bar -->
+    <header id="topbar">
+      <h1 id="brand"><span class="brand-ad">ad</span>FreeCell</h1>
+
+      <div id="hud">
+        <div class="hud-item">
+          <span class="hud-label" data-i18n="gameLabel">Spiel</span>
+          <span id="hud-game" class="hud-value">#1</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label" data-i18n="movesLabel">Züge</span>
+          <span id="hud-moves" class="hud-value">0</span>
+        </div>
+        <div class="hud-item" id="hud-time-wrap">
+          <span class="hud-label" data-i18n="timeLabel">Zeit</span>
+          <span id="hud-time" class="hud-value">0:00</span>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <button id="btn-help" class="icon-btn" data-i18n-aria="howToTitle" title="?">
+          <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 15.5a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4zM12 6.2c1.9 0 3.4 1.3 3.4 3.1 0 1.4-.8 2.1-1.8 2.8-.7.5-1 .8-1 1.5v.4h-1.9v-.6c0-1.3.6-2 1.5-2.6.8-.6 1.2-.9 1.2-1.6 0-.8-.7-1.3-1.5-1.3-.9 0-1.5.6-1.6 1.5H8c.1-1.9 1.7-3.2 4-3.2z"/></svg>
+        </button>
+        <button id="btn-stats" class="icon-btn" data-i18n-aria="statsTitle" title="Stats">
+          <svg viewBox="0 0 24 24"><path d="M4 13h4v7H4zm6-6h4v13h-4zm6 3h4v10h-4z"/></svg>
+        </button>
+        <button id="btn-settings" class="icon-btn" data-i18n-aria="settings" title="Settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Play area: free cells + foundations on top, tableau below. Cards are
+         positioned absolutely on top of these slots by game.js. -->
+    <main id="play">
+      <div id="cards"></div>
+    </main>
+
+    <!-- Bottom controls -->
+    <footer id="controls">
+      <button id="btn-new" class="ctl" data-i18n="newGame">Neues Spiel</button>
+      <button id="btn-restart" class="ctl" data-i18n="restart">Neu starten</button>
+      <button id="btn-undo" class="ctl" data-i18n="undo">Zurück</button>
+      <button id="btn-redo" class="ctl" data-i18n="redo">Vor</button>
+      <button id="btn-hint" class="ctl" data-i18n="hint">Tipp</button>
+      <button id="btn-autofinish" class="ctl ctl-accent hidden" data-i18n="autoFinish">Auflösen</button>
+    </footer>
+
+    <!-- Win overlay -->
+    <div id="overlay-win" class="overlay">
+      <div class="card-panel win-card">
+        <div class="win-emoji" aria-hidden="true">🏆</div>
+        <h2 data-i18n="wonTitle">Gewonnen!</h2>
+        <p id="win-msg" class="win-msg"></p>
+        <div class="row">
+          <button id="btn-win-again" class="btn btn-ghost" data-i18n="playAgain">Nochmal</button>
+          <button id="btn-win-next" class="btn btn-primary" data-i18n="nextGame">Nächstes Spiel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- New-game / choose-number overlay -->
+    <div id="overlay-select" class="overlay">
+      <div class="card-panel">
+        <h2 data-i18n="selectGameTitle">Spiel wählen</h2>
+        <div class="select-row">
+          <input id="select-number" type="number" inputmode="numeric" min="1" step="1"
+                 data-i18n-ph="gameNumberPh" placeholder="Nummer" />
+          <button id="btn-select-random" class="btn btn-ghost" data-i18n="randomGame">Zufällig</button>
+        </div>
+        <div class="row">
+          <button id="btn-select-cancel" class="btn btn-ghost" data-i18n="cancel">Abbrechen</button>
+          <button id="btn-select-start" class="btn btn-primary" data-i18n="start">Starten</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- How-to overlay -->
+    <div id="overlay-howto" class="overlay">
+      <div class="card-panel">
+        <h2 data-i18n="howToTitle">So wird gespielt</h2>
+        <ul class="howto-list">
+          <li data-i18n="howto1"></li>
+          <li data-i18n="howto2"></li>
+          <li data-i18n="howto3"></li>
+          <li data-i18n="howto4"></li>
+          <li data-i18n="howto5"></li>
+        </ul>
+        <button id="btn-howto-close" class="btn btn-primary" data-i18n="gotIt">Los geht’s</button>
+      </div>
+    </div>
+
+    <!-- Stats overlay -->
+    <div id="overlay-stats" class="overlay">
+      <div class="card-panel">
+        <h2 data-i18n="statsTitle">Statistik</h2>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div class="row">
+          <button id="btn-stats-reset" class="btn btn-ghost danger" data-i18n="resetStats">Statistik zurücksetzen</button>
+          <button id="btn-stats-close" class="btn btn-primary" data-i18n="close">Schließen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings overlay -->
+    <div id="overlay-settings" class="overlay">
+      <div class="card-panel">
+        <h2 data-i18n="settings">Einstellungen</h2>
+        <div class="set-list">
+          <div class="set-row">
+            <span class="set-label" data-i18n="language">Sprache</span>
+            <select id="set-lang" class="select" aria-label="Language"></select>
+          </div>
+          <div class="set-row">
+            <span class="set-label" data-i18n="theme">Design</span>
+            <div class="seg" id="set-theme">
+              <button data-val="felt" data-i18n="themeFelt">Filz</button>
+              <button data-val="midnight" data-i18n="themeMidnight">Mitternacht</button>
+              <button data-val="slate" data-i18n="themeSlate">Schiefer</button>
+            </div>
+          </div>
+          <div class="set-row">
+            <span class="set-label">
+              <span data-i18n="autoCollect">Auto-Aufräumen</span>
+              <small class="set-hint" data-i18n="autoCollectHint">Sichere Karten automatisch ablegen</small>
+            </span>
+            <div class="seg" id="set-autocollect"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
+          </div>
+          <div class="set-row">
+            <span class="set-label" data-i18n="sound">Sound</span>
+            <div class="seg" id="set-sound"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
+          </div>
+          <div class="set-row">
+            <span class="set-label" data-i18n="showTimer">Zeit anzeigen</span>
+            <div class="seg" id="set-timer"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
+          </div>
+          <div class="set-row set-actions">
+            <button id="btn-install" class="btn btn-ghost hidden" data-i18n="installApp">App installieren</button>
+            <button id="btn-share" class="btn btn-ghost" data-i18n="shareApp">Weiterempfehlen</button>
+          </div>
+        </div>
+        <p class="license-note" data-i18n="cardsLicense"></p>
+        <button id="btn-settings-close" class="btn btn-primary" data-i18n="close">Schließen</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <canvas id="fx-canvas" class="fx-canvas"></canvas>
+  </div>
+
+  <script src="js/cards-sprite.js"></script>
+  <script src="js/deal.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
