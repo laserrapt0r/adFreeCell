@@ -24,6 +24,10 @@ build/
 tmp/
 .cache/
 
+# Difficulty precompute intermediates (js/difficulty.js IS committed; these are not)
+tools/diff-part-*.json
+tools/difficulty.log
+
 # Secrets — never commit tokens or credentials
 .env
 .env.*
