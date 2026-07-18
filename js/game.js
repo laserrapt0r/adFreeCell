@@ -427,6 +427,11 @@
       window.Sfx.play('pick');
       var zc = 1000;
       drag.g.uids.forEach(function (u) { cardEls[u].classList.add('dragging'); cardEls[u].style.zIndex = zc++; });
+      // reveal the placeholder behind the picked-up cards right away if the
+      // source becomes empty (render() restores the correct state on drop)
+      var src = drag.g.src;
+      if (src.kind === 'free') slotEls.free[src.i].style.opacity = '1';
+      else if (src.kind === 'tableau' && src.index === 0) slotEls.column[src.col].style.opacity = '1';
       clearSelection();
       highlightLegalTargets(drag.g);
     }
