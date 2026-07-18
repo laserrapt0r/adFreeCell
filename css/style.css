@@ -143,11 +143,16 @@ html, body {
 .card svg { display: block; width: 100%; height: 100%; }
 .card.dragging { transition: none; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5); cursor: grabbing; }
 .card.selected { box-shadow: 0 0 0 3px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.5); }
-.card.hintful { animation: hintpulse 0.8s ease 2; }
+/* hint: source card pulses amber, destination gets a green ring (matches arrow) */
+.card.hintful { animation: hintpulse 0.7s ease 3; z-index: 900 !important; }
 @keyframes hintpulse {
   0%, 100% { box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); }
-  50% { box-shadow: 0 0 0 4px var(--accent-2), 0 0 20px rgba(55, 201, 120, 0.7); }
+  50% { box-shadow: 0 0 0 4px var(--accent), 0 0 20px rgba(255, 209, 102, 0.8); }
 }
+.card.hint-target, .slot.hint-target {
+  box-shadow: 0 0 0 4px var(--accent-2), 0 0 22px rgba(55, 201, 120, 0.7);
+}
+.slot.hint-target { background: rgba(55, 201, 120, 0.14); }
 .card.no-anim { transition: none; }
 
 /* ---------------- bottom controls ---------------- */

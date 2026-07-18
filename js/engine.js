@@ -188,6 +188,84 @@
     return isWon(t);
   }
 
+  function foundationSum(s) { return s.foundations[0] + s.foundations[1] + s.foundations[2] + s.foundations[3]; }
+
+  // All legal moves from a state, as { src, dst } objects.
+  function legalMoves(s) {
+    var out = [], i, c, t;
+    var acc = accessibleCards(s);
+    for (i = 0; i < acc.length; i++)
+      if (canToFoundation(s, acc[i].card)) out.push({ src: acc[i].src, dst: { kind: 'foundation', i: acc[i].card.suit } });
+    for (c = 0; c < 8; c++) {
+      var col = s.tableau[c];
+      for (var d = 0; d < col.length; d++) {
+        if (!isRun(col, d)) continue;
+        var run = col.slice(d), lead = run[0];
+        for (t = 0; t < 8; t++) {
+          if (t === c) continue;
+          var dc = s.tableau[t], empty = dc.length === 0;
+          if (run.length > maxSupermove(s, empty)) continue;
+          if (empty || canStack(lead, dc[dc.length - 1])) {
+            if (empty && d === 0) continue; // moving a whole column onto empty is pointless
+            out.push({ src: { kind: 'tableau', col: c, index: d }, dst: { kind: 'tableau', col: t } });
+          }
+        }
+        break; // only the topmost movable run of a column
+      }
+    }
+    for (i = 0; i < 4; i++) {
+      var fc = s.free[i]; if (!fc) continue;
+      for (t = 0; t < 8; t++) {
+        var dc2 = s.tableau[t], empty2 = dc2.length === 0;
+        if (empty2 || canStack(fc, dc2[dc2.length - 1])) out.push({ src: { kind: 'free', i: i }, dst: { kind: 'tableau', col: t } });
+      }
+    }
+    for (c = 0; c < 8; c++) {
+      var cc = s.tableau[c]; if (!cc.length) continue;
+      for (i = 0; i < 4; i++) if (!s.free[i]) { out.push({ src: { kind: 'tableau', col: c, index: cc.length - 1 }, dst: { kind: 'free', i: i } }); break; }
+    }
+    return out;
+  }
+
+  function stateKey(st) {
+    return st.free.map(function (c) { return c ? c.uid : 0; }).sort(function (a, b) { return a - b; }).join(',') + '/' +
+      st.foundations.join(',') + '/' +
+      st.tableau.map(function (col) { return col.map(function (x) { return x.uid; }).join('.'); }).sort().join('|');
+  }
+
+  /* Greedy best-first search for a move that leads to a win. Returns
+     { solved:true, move } (move may be null if already essentially won),
+     { capped:true } if the node budget ran out, or
+     { unsolvable:true } if the whole reachable space was explored with no win. */
+  function findSolutionMove(s, maxNodes) {
+    maxNodes = maxNodes || 50000;
+    if (isWon(s)) return { solved: true, move: null };
+    var start = clone(s);
+    var seen = {}; seen[stateKey(start)] = true;
+    var stack = [{ s: start, first: null }];
+    var nodes = 0;
+    while (stack.length) {
+      if (nodes++ > maxNodes) return { capped: true };
+      var node = stack.pop(), st = node.s;
+      if (isWon(st) || (foundationSum(st) >= 36 && canAutoFinish(st))) return { solved: true, move: node.first };
+      var moves = legalMoves(st);
+      var cands = [];
+      for (var i = 0; i < moves.length; i++) {
+        var ns = clone(st);
+        applyMove(ns, moves[i].src, moves[i].dst);
+        var k = stateKey(ns);
+        if (seen[k]) continue;
+        cands.push({ ns: ns, k: k, h: foundationSum(ns), mv: moves[i] });
+      }
+      cands.sort(function (a, b) { return a.h - b.h; }); // best (highest foundations) popped first
+      for (var j = 0; j < cands.length; j++) {
+        seen[cands[j].k] = true;
+        stack.push({ s: cands[j].ns, first: node.first || cands[j].mv });
+      }
+    }
+    return { unsolvable: true };
+  }
+
   window.FreeCellEngine = {
     newGame: newGame,
     clone: clone,
@@ -205,5 +283,8 @@
     nextSafeMove: nextSafeMove,
     nextFoundationMove: nextFoundationMove,
     canAutoFinish: canAutoFinish,
+    foundationSum: foundationSum,
+    legalMoves: legalMoves,
+    findSolutionMove: findSolutionMove,
   };
 })();

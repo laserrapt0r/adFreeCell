@@ -36,6 +36,8 @@
   var selected = null;         // { src, uids } tap-selection
   var won = false;
   var finishing = false;
+  var lastMove = null;         // { uid, src, dst } - for hint anti-oscillation
+  var hintTimer = null, hintRAF = 0;
   var timerId = null, startTs = 0, elapsedBase = 0, timing = false;
 
   // ================= layout =================
@@ -259,6 +261,7 @@
     var snap = E.clone(state);
     var res = E.applyMove(state, src, dst);
     if (!res.ok) return false;
+    lastMove = { uid: res.run[0].uid, src: src, dst: dst };
     if (!opts.noUndoPush) { undoStack.push(snap); redoStack = []; }
     startTiming();
     playMoveSound(dst);
@@ -275,6 +278,7 @@
 
   function afterMove(silent) {
     clearSelection();
+    clearHintVisual();
     updateHud();
     updateButtons();
     saveCurrent();
@@ -331,6 +335,7 @@
   function onPointerDown(e) {
     if (won && !finishing) return;
     if (finishing) return;
+    clearHintVisual();
     var cardEl = e.target.closest ? e.target.closest('.card') : null;
     var p = relPoint(e);
     if (!cardEl) {
@@ -450,8 +455,10 @@
   // ================= game lifecycle =================
   function newGame(number, resumeState) {
     won = false; finishing = false;
+    lastMove = null;
     undoStack = []; redoStack = [];
     clearSelection();
+    clearHintVisual();
     stopTiming();
     if (resumeState) {
       state = resumeState.state;
@@ -513,49 +520,126 @@
   }
 
   function hint() {
-    if (won) return;
-    var mv = findHint();
-    if (!mv) { toast(T('hintNone')); return; }
-    mv.uids.forEach(function (u) {
-      cardEls[u].classList.add('hintful');
-      setTimeout(function () { cardEls[u].classList.remove('hintful'); }, 1700);
-    });
+    if (won || finishing) return;
+    var h = computeHint();
+    if (!h) { toast(T('hintNone')); return; }
+    if (h.unsolvable) { toast(T('hintStuck')); return; }
+    showHintVisual(h);
   }
 
-  // a "useful" move: foundation first, then a tableau move that frees space
-  function findHint() {
-    var i, c;
-    // 1) any card that can go home
-    var acc = E.accessibleCards(state);
-    for (i = 0; i < acc.length; i++) {
-      if (E.canToFoundation(state, acc[i].card)) return { uids: [acc[i].card.uid] };
+  // Ask the solver for a move that leads to a win; if the search is too large,
+  // fall back to a ranked heuristic. Returns { uids, dest } or { unsolvable }.
+  function computeHint() {
+    var res = E.findSolutionMove(state, 30000);
+    var mv = null;
+    if (res.solved) mv = res.move || E.nextFoundationMove(state) || E.nextSafeMove(state);
+    else if (res.unsolvable) return { unsolvable: true };
+    if (!mv) mv = heuristicMove();   // capped search -> heuristic
+    if (!mv) return null;
+    return moveToHint(mv);
+  }
+
+  function leadCardOf(src) {
+    return src.kind === 'free' ? state.free[src.i] : state.tableau[src.col][src.index];
+  }
+
+  // ranked heuristic: favour progress that doesn't waste tempo
+  function heuristicMove() {
+    var moves = E.legalMoves(state), best = null, bestScore = -Infinity;
+    for (var i = 0; i < moves.length; i++) {
+      var sc = scoreMove(moves[i]);
+      if (sc > bestScore) { bestScore = sc; best = moves[i]; }
     }
-    // 2) a tableau run that can move onto another column
-    for (c = 0; c < 8; c++) {
-      var col = state.tableau[c];
-      for (var d = 0; d < col.length; d++) {
-        if (!E.isRun(col, d)) continue;
-        var run = col.slice(d);
-        for (var t = 0; t < 8; t++) {
-          if (t === c) continue;
-          var dcol = state.tableau[t];
-          var toEmpty = dcol.length === 0;
-          if (run.length > E.maxSupermove(state, toEmpty)) continue;
-          if (toEmpty || E.canStack(run[0], dcol[dcol.length - 1])) {
-            // avoid pointless moves of a full column onto an empty one
-            if (toEmpty && d === 0) continue;
-            return { uids: run.map(function (x) { return x.uid; }) };
-          }
-        }
-        break; // only the top run of a column is worth checking
-      }
+    return best;
+  }
+  function scoreMove(mv) {
+    var lead = leadCardOf(mv.src), s;
+    if (mv.dst.kind === 'foundation') {
+      s = E.isSafeAutoplay(state, lead) ? 100 : 8;
+    } else if (mv.dst.kind === 'free') {
+      s = -15;
+    } else {
+      s = state.tableau[mv.dst.col].length === 0 ? 28 : 52;
+      if (mv.src.kind === 'tableau' && mv.src.index === 0) s += 80;   // empties a column
+      if (mv.src.kind === 'free') s += 45;                            // frees a cell
+      if (mv.src.kind === 'tableau' && mv.src.index > 0 &&
+          E.canToFoundation(state, state.tableau[mv.src.col][mv.src.index - 1])) s += 20; // uncovers a home-able card
     }
-    // 3) move a card to a free cell
-    for (c = 0; c < 8; c++) {
-      var cc = state.tableau[c];
-      if (cc.length && E.freeEmptyCount(state) > 0) return { uids: [cc[cc.length - 1].uid] };
-    }
-    return null;
+    if (lastMove && lead.uid === lastMove.uid && locEquals(mv.dst, lastMove.src)) s -= 1000; // anti-oscillation
+    return s;
+  }
+  function locEquals(dst, src) {
+    if (dst.kind === 'tableau' && src.kind === 'tableau') return dst.col === src.col;
+    if (dst.kind === 'free' && src.kind === 'free') return dst.i === src.i;
+    return false;
+  }
+  function moveToHint(mv) {
+    var uids = mv.src.kind === 'free'
+      ? [state.free[mv.src.i].uid]
+      : state.tableau[mv.src.col].slice(mv.src.index).map(function (c) { return c.uid; });
+    var dest;
+    if (mv.dst.kind === 'foundation') dest = { kind: 'foundation', suit: mv.dst.i };
+    else if (mv.dst.kind === 'free') dest = { kind: 'free', i: mv.dst.i };
+    else dest = { kind: 'tableau', col: mv.dst.col };
+    return { uids: uids, dest: dest };
+  }
+
+  // ---- hint presentation: pulse the source, ring the target, draw an arrow ----
+  function destElement(dest) {
+    if (dest.kind === 'foundation') return slotEls.foundation[dest.suit];
+    if (dest.kind === 'free') return slotEls.free[dest.i];
+    var col = state.tableau[dest.col];
+    return col.length ? cardEls[col[col.length - 1].uid] : slotEls.column[dest.col];
+  }
+  function showHintVisual(h) {
+    clearHintVisual();
+    h.uids.forEach(function (u) { cardEls[u].classList.add('hintful'); });
+    var target = destElement(h.dest);
+    if (target) target.classList.add('hint-target');
+    drawHintArrow(cardEls[h.uids[0]], target);
+    hintTimer = setTimeout(clearHintVisual, 2000);
+  }
+  function clearHintVisual() {
+    if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
+    for (var u in cardEls) cardEls[u].classList.remove('hintful', 'hint-target');
+    slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (sl) { sl.classList.remove('hint-target'); });
+    if (hintRAF) { cancelAnimationFrame(hintRAF); hintRAF = 0; }
+    var ctx = fx.getContext('2d'); ctx.clearRect(0, 0, fx.width, fx.height);
+  }
+  function centerOf(el) { var b = el.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }
+  function drawHintArrow(fromEl, toEl) {
+    if (!fromEl || !toEl) return;
+    var a = centerOf(fromEl), b = centerOf(toEl);
+    var ctx = fx.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    fx.width = innerWidth * dpr; fx.height = innerHeight * dpr;
+    var t0 = Date.now();
+    (function frame() {
+      var el = Date.now() - t0;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      var alpha = el < 1600 ? 1 : Math.max(0, 1 - (el - 1600) / 400);
+      drawArrow(ctx, a, b, alpha);
+      if (el < 2000) hintRAF = requestAnimationFrame(frame);
+      else { hintRAF = 0; ctx.clearRect(0, 0, innerWidth, innerHeight); }
+    })();
+  }
+  function drawArrow(ctx, a, b, alpha) {
+    var ang = Math.atan2(b.y - a.y, b.x - a.x);
+    var ux = Math.cos(ang), uy = Math.sin(ang);
+    var tipx = b.x - ux * 14, tipy = b.y - uy * 14;       // stop short of the target centre
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#37c978'; ctx.fillStyle = '#37c978';
+    ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(tipx - ux * 10, tipy - uy * 10); ctx.stroke();
+    var ah = 16;
+    ctx.beginPath();
+    ctx.moveTo(tipx, tipy);
+    ctx.lineTo(tipx - ah * Math.cos(ang - 0.42), tipy - ah * Math.sin(ang - 0.42));
+    ctx.lineTo(tipx - ah * Math.cos(ang + 0.42), tipy - ah * Math.sin(ang + 0.42));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
   }
 
   function onWin() {
