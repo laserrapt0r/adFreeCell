@@ -700,6 +700,7 @@
     window.Storage.clearCurrent();
     window.Sfx.play('win');
     document.getElementById('win-msg').textContent = T('wonMsg', { moves: state.moves, time: fmtTime(secs) });
+    document.getElementById('win-progress').textContent = T('wonProgress', { number: state.number, n: window.Storage.solvedCount() });
     setTimeout(function () { show('overlay-win'); confetti(); }, 500);
     updateButtons();
   }
@@ -811,12 +812,20 @@
     document.getElementById('btn-select-cancel').onclick = function () { hide('overlay-select'); };
     document.getElementById('btn-select-random').onclick = function () {
       document.getElementById('select-number').value = D.randomSolvableNumber();
+      updateSelectStatus();
+    };
+    document.getElementById('btn-select-unsolved').onclick = function () {
+      var n = window.Storage.nextUnsolved(state ? state.number : 0);
+      if (n == null) { toast(T('allSolved')); return; }
+      hide('overlay-select'); newGame(n);
     };
     document.getElementById('btn-select-start').onclick = function () {
       var v = parseInt(document.getElementById('select-number').value, 10);
       if (!v || v < 1) v = D.randomSolvableNumber();
+      if (v > 32000) v = 32000;
       hide('overlay-select'); newGame(v);
     };
+    document.getElementById('select-number').addEventListener('input', updateSelectStatus);
     document.getElementById('select-number').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') document.getElementById('btn-select-start').click();
     });
@@ -860,9 +869,21 @@
   }
 
   function openSelect() {
-    document.getElementById('select-number').value = state ? state.number : '';
+    var inp = document.getElementById('select-number');
+    inp.value = state ? state.number : '';
+    updateSelectStatus();
     show('overlay-select');
-    setTimeout(function () { document.getElementById('select-number').focus(); }, 50);
+    setTimeout(function () { inp.focus(); inp.select(); }, 50);
+  }
+  function updateSelectStatus() {
+    document.getElementById('select-progress').textContent = T('progressFmt', { n: window.Storage.solvedCount() });
+    var v = parseInt(document.getElementById('select-number').value, 10);
+    var el = document.getElementById('select-status');
+    el.className = 'select-status';
+    if (!v || v < 1 || v > 32000) { el.textContent = ''; return; }
+    if (v === 11982) { el.textContent = T('statusUnsolvable'); el.classList.add('is-unsolvable'); }
+    else if (window.Storage.isSolved(v)) { el.textContent = T('statusSolved'); el.classList.add('is-solved'); }
+    else el.textContent = T('statusUnsolved');
   }
 
   function seg(id, val, cb) {
@@ -891,6 +912,7 @@
 
   function renderStats() {
     var s = window.Storage.stats();
+    document.getElementById('stats-progress').textContent = T('progressFmt', { n: window.Storage.solvedCount() });
     var rate = s.played ? Math.round((s.won / s.played) * 100) : 0;
     var rows = [
       [s.played, T('played')],

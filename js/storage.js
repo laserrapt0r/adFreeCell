@@ -54,6 +54,32 @@
     stats: function () { return Object.assign({}, state.stats); },
     isSolved: function (n) { return !!state.solved[n]; },
 
+    // ---- campaign progress over the classic 1..32000 deals (11982 unsolvable) ----
+    solvedCount: function () {
+      var n = 0;
+      for (var k in state.solved) if (state.solved[k]) n++;
+      return n;
+    },
+    // lowest unsolved solvable deal after `from` (wraps around); null if all solved
+    nextUnsolved: function (from) {
+      var MAX = 32000, UNS = 11982, start = (from | 0);
+      for (var i = 1; i <= MAX; i++) {
+        var n = ((start + i - 1) % MAX) + 1;
+        if (n !== UNS && !state.solved[n]) return n;
+      }
+      return null;
+    },
+    // a random unsolved solvable deal; null if all solved
+    randomUnsolved: function (rnd) {
+      var MAX = 32000, UNS = 11982, r = rnd || Math.random;
+      if (this.solvedCount() >= MAX - 1) return this.nextUnsolved(0);
+      for (var tries = 0; tries < 400; tries++) {
+        var n = 1 + Math.floor(r() * MAX);
+        if (n !== UNS && !state.solved[n]) return n;
+      }
+      return this.nextUnsolved(Math.floor(r() * MAX));
+    },
+
     // record the outcome of a finished game
     recordResult: function (number, won, timeSec, moves) {
       var st = state.stats;

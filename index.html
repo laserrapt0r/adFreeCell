@@ -68,6 +68,7 @@
         <div class="win-emoji" aria-hidden="true">🏆</div>
         <h2 data-i18n="wonTitle">Gewonnen!</h2>
         <p id="win-msg" class="win-msg"></p>
+        <p id="win-progress" class="muted-line"></p>
         <div class="row">
           <button id="btn-win-again" class="btn btn-ghost" data-i18n="playAgain">Nochmal</button>
           <button id="btn-win-next" class="btn btn-primary" data-i18n="nextGame">Nächstes Spiel</button>
@@ -79,11 +80,14 @@
     <div id="overlay-select" class="overlay">
       <div class="card-panel">
         <h2 data-i18n="selectGameTitle">Spiel wählen</h2>
+        <p id="select-progress" class="muted-line"></p>
         <div class="select-row">
-          <input id="select-number" type="number" inputmode="numeric" min="1" step="1"
+          <input id="select-number" type="number" inputmode="numeric" min="1" max="32000" step="1"
                  data-i18n-ph="gameNumberPh" placeholder="Nummer" />
           <button id="btn-select-random" class="btn btn-ghost" data-i18n="randomGame">Zufällig</button>
         </div>
+        <p id="select-status" class="select-status"></p>
+        <button id="btn-select-unsolved" class="btn btn-ghost" data-i18n="nextUnsolved">Nächstes ungelöstes</button>
         <div class="row">
           <button id="btn-select-cancel" class="btn btn-ghost" data-i18n="cancel">Abbrechen</button>
           <button id="btn-select-start" class="btn btn-primary" data-i18n="start">Starten</button>
@@ -110,6 +114,7 @@
     <div id="overlay-stats" class="overlay">
       <div class="card-panel">
         <h2 data-i18n="statsTitle">Statistik</h2>
+        <p id="stats-progress" class="muted-line"></p>
         <div class="stats-grid" id="stats-grid"></div>
         <div class="row">
           <button id="btn-stats-reset" class="btn btn-ghost danger" data-i18n="resetStats">Statistik zurücksetzen</button>
