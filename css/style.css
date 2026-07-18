@@ -377,18 +377,22 @@ html, body {
   border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px;
   display: grid; place-items: center;
   font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums;
-  cursor: pointer; background: rgba(255, 255, 255, 0.04); color: var(--text);
+  cursor: pointer; color: var(--text);
+  background: rgba(225, 60, 70, 0.16);   /* unsolved -> red */
 }
-.deal-cell:hover { background: rgba(255, 255, 255, 0.14); }
-.deal-cell.solved { background: rgba(55, 201, 120, 0.16); }
+.deal-cell:hover { background: rgba(225, 60, 70, 0.30); }
+.deal-cell.solved { background: rgba(55, 201, 120, 0.22); }        /* solved -> green */
+.deal-cell.solved:hover { background: rgba(55, 201, 120, 0.34); }
 .deal-cell.solved::after { content: '✓'; position: absolute; top: 0; right: 3px; font-size: 0.62rem; color: var(--accent-2); }
 .deal-cell.current { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* left stripe still encodes difficulty */
 .deal-cell.tier-1 { border-left-color: #37c978; }
 .deal-cell.tier-2 { border-left-color: #ffd166; }
 .deal-cell.tier-3 { border-left-color: #f2724b; }
 .deal-cell.tier-4 { border-left-color: #e11d48; }
-.deal-cell.tier-9 { border-left-color: var(--danger); }
 .deal-cell.tier-0 { border-left-color: var(--line); }
+.deal-cell.tier-9 { border-left-color: var(--danger); background: rgba(255, 255, 255, 0.05); } /* #11982: unsolvable, neutral */
+.deal-cell.tier-9:hover { background: rgba(255, 255, 255, 0.12); }
 .browse-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 12px 0 8px; }
 .browse-page { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 120px; text-align: center; }
 

@@ -628,6 +628,7 @@
     lastMove = null;
     undoStack = []; redoStack = [];
     cancelWinAnimation();
+    hintPlan = hintPlanKeys = null;
     clearSelection();
     clearHintVisual();
     setDeadEnd(false);
@@ -702,26 +703,41 @@
     showHintVisual(h);
   }
 
-  // Ask the solver for a move that leads to a win; if the search is too large,
-  // fall back to a ranked heuristic. Returns { uids, dest } or { unsolvable }.
+  // A hint that never goes in circles. Independent greedy hints can oscillate
+  // (a card out to a free cell, then straight back), so instead we follow one
+  // consistent solution line: prefer a provably-safe card home, otherwise the
+  // next move along a cached winning line, recomputed only once the player has
+  // left it. Returns { uids, dest } or { unsolvable }.
+  var hintPlan = null, hintPlanKeys = null;
+  function hintKey(s) {
+    return JSON.stringify([
+      s.free.map(function (c) { return c ? c.uid : 0; }),
+      s.foundations,
+      s.tableau.map(function (col) { return col.map(function (c) { return c.uid; }); }),
+    ]);
+  }
+  function rebuildHintPlan(path) {
+    hintPlan = path; hintPlanKeys = [];
+    var cur = E.clone(state);
+    for (var i = 0; i < path.length; i++) { hintPlanKeys.push(hintKey(cur)); E.applyMove(cur, path[i].src, path[i].dst); }
+  }
   function computeHint() {
+    // 1. a card that can always safely go home — never a mistake, never a loop
+    var sm = E.nextSafeMove(state);
+    if (sm) return moveToHint(sm);
+    // 2. follow the cached winning line while we're still on it
+    var idx = hintPlanKeys ? hintPlanKeys.indexOf(hintKey(state)) : -1;
+    if (idx < 0) {                                    // off the plan -> compute a fresh consistent line
+      var path = E.solvePath(state, 100000);
+      if (path && path.length) { rebuildHintPlan(path); idx = 0; }
+    }
+    if (idx >= 0 && hintPlan && idx < hintPlan.length) return moveToHint(hintPlan[idx]);
+    // 3. no line available (solver capped, or the plan reached the auto-finish point)
+    var fm = E.nextFoundationMove(state);
+    if (fm) return moveToHint(fm);
     var res = E.findSolutionMove(state, 30000);
     if (res.unsolvable) return { unsolvable: true };
-    var solverMove = res.solved ? (res.move || E.nextFoundationMove(state) || E.nextSafeMove(state)) : null;
-    // Prefer the most intuitive move that provably keeps the game winnable, so
-    // the hint doesn't feel arbitrary (a safe card home / a sensible build)
-    // instead of a cryptic solver setup move.
-    var h = heuristicMove();
-    if (h) {
-      var lead = leadCardOf(h.src);
-      if (h.dst.kind === 'foundation' && E.isSafeAutoplay(state, lead)) return moveToHint(h); // always safe
-      if (res.solved) {
-        var after = E.clone(state);
-        E.applyMove(after, h.src, h.dst);
-        if (E.findSolutionMove(after, 30000).solved) return moveToHint(h); // verified not to lose
-      }
-    }
-    var mv = solverMove || h;
+    var mv = res.move || heuristicMove();
     return mv ? moveToHint(mv) : null;
   }
 
@@ -979,10 +995,12 @@
 
     function launch(p, idx) {
       p.launched = true; p.x = m.foundX[p.suit]; p.y = m.topY;
-      var cx = p.x + cw / 2, out = cx < W / 2 ? -1 : 1, R = Math.random;
-      if (variant === 0) { p.vx = (idx % 2 ? 1 : -1) * (4 + R() * 4); p.vy = -(2 + R() * 5); }       // bounce cascade
-      else if (variant === 1) { p.vx = (4 + R() * 3) * (R() < 0.5 ? -1 : 1); p.vy = -(11 + R() * 6); } // fountain
-      else { p.vx = out * (4 + R() * 5); p.vy = -(5 + R() * 6); }                                        // spray outward
+      // fly toward the far edge (away from the foundations) so the cards sweep
+      // across the whole table and stay visible — works for both hand layouts.
+      var cx = p.x + cw / 2, far = cx < W / 2 ? 1 : -1, R = Math.random;
+      if (variant === 0) { p.vx = far * (5 + R() * 4); p.vy = -(3 + R() * 5); }        // cascade across
+      else if (variant === 1) { p.vx = far * (3 + R() * 3); p.vy = -(12 + R() * 6); }  // fountain: up high, drift across
+      else { p.vx = far * (7 + R() * 5); p.vy = -(2 + R() * 4); }                       // comet: fast low streak
       p.el.classList.add('win-fly');
       p.el.style.zIndex = 1000 + idx;
     }
