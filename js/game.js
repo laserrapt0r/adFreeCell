@@ -727,23 +727,55 @@
     for (var i = 0; i < path.length; i++) { hintPlanKeys.push(hintKey(cur)); E.applyMove(cur, path[i].src, path[i].dst); }
   }
   function computeHint() {
+    var visited = gameVisited();                      // positions already reached on this line
     // 1. a card that can always safely go home — never a mistake, never a loop
     var sm = E.nextSafeMove(state);
     if (sm) return moveToHint(sm);
-    // 2. follow the cached winning line while we're still on it
+    // 2. follow the cached winning line while we're still on it, else compute one
     var idx = hintPlanKeys ? hintPlanKeys.indexOf(hintKey(state)) : -1;
-    if (idx < 0) {                                    // off the plan -> compute a fresh consistent line
-      var path = E.solvePath(state, 200000, 1200);   // time-bounded so a hard deal can't freeze the hint
+    if (idx < 0) {                                    // off the plan -> a fresh line (a partial one if it can't fully solve in time)
+      var path = E.solvePath(state, 200000, 1200);
       if (path && path.length) { rebuildHintPlan(path); idx = 0; }
     }
-    if (idx >= 0 && hintPlan && idx < hintPlan.length) return moveToHint(hintPlan[idx]);
-    // 3. no line available (solver capped, or the plan reached the auto-finish point)
-    var fm = E.nextFoundationMove(state);
-    if (fm) return moveToHint(fm);
-    var res = E.findSolutionMove(state, 30000);
-    if (res.unsolvable) return { unsolvable: true };
-    var mv = res.move || heuristicMove();
-    return mv ? moveToHint(mv) : null;
+    var mv = (idx >= 0 && hintPlan && idx < hintPlan.length) ? hintPlan[idx] : null;
+    // 3. no-revisit guarantee: never send the player back to a position they have
+    //    already been in this game. This makes looping impossible even on the rare
+    //    deals we can't fully solve in the budget, and always makes real progress.
+    if (!mv || revisits(mv, visited)) {
+      var prog = bestProgressMove(visited);
+      if (prog) mv = prog;
+    }
+    if (mv) return moveToHint(mv);
+    // every legal move would send the player back to a position already seen on
+    // this line -> refuse to loop and say so honestly (rather than cycle forever)
+    return { unsolvable: true };
+  }
+  // positions on the current line (the undo history holds exactly those; undone
+  // branches live in the redo stack, so re-doing a move is never blocked)
+  function gameVisited() {
+    var v = new Set();
+    for (var i = 0; i < undoStack.length; i++) v.add(hintKey(undoStack[i]));
+    return v;
+  }
+  // key of the position after a move settles (move + any safe auto-collect), so it
+  // lines up with the positions recorded in the undo history
+  function settledKey(mv) {
+    var t = E.clone(state);
+    if (!E.applyMove(t, mv.src, mv.dst).ok) return null;
+    if (window.Storage.autoCollect) { var s2; while ((s2 = E.nextSafeMove(t))) E.applyMove(t, s2.src, s2.dst); }
+    return hintKey(t);
+  }
+  function revisits(mv, visited) { var k = settledKey(mv); return k != null && visited.has(k); }
+  // best-scoring legal move that leads somewhere new (never a revisit)
+  function bestProgressMove(visited) {
+    var moves = E.legalMoves(state), best = null, bestScore = -Infinity;
+    for (var i = 0; i < moves.length; i++) {
+      var k = settledKey(moves[i]);
+      if (k == null || visited.has(k)) continue;
+      var sc = scoreMove(moves[i]);
+      if (sc > bestScore) { bestScore = sc; best = moves[i]; }
+    }
+    return best;
   }
 
   function leadCardOf(src) {
