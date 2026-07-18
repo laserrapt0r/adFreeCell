@@ -12,6 +12,7 @@
   // suit index -> foundation slot is the same index: 0 club,1 diamond,2 heart,3 spade
   var SUIT_IS_RED = [false, true, true, false];
   var SUIT_LETTER = ['c', 'd', 'h', 's']; // card artwork file/ids use these
+  var RANK_LABEL = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']; // screen-reader rank text
 
   // ---- element refs ----
   var app = document.getElementById('app');
@@ -178,6 +179,8 @@
         var el = document.createElement('div');
         el.className = 'card' + (SUIT_IS_RED[suit] ? ' red-suit' : ' black-suit');
         el.dataset.uid = id;
+        el.setAttribute('role', 'img');
+        el.setAttribute('aria-label', cardName(id));
         var svgId = 'card_' + rank + SUIT_LETTER[suit];
         // the card box matches the native 225:314 ratio, so the default
         // preserveAspectRatio (meet) fills it exactly without distortion.
@@ -260,6 +263,32 @@
   // ================= moves =================
   function pushUndo() { undoStack.push(E.clone(state)); if (undoStack.length > 2000) undoStack.shift(); }
 
+  // ---------- screen-reader announcements ----------
+  var srLive = null, srNonce = 0;
+  function announce(msg) {
+    if (!srLive) srLive = document.getElementById('sr-live');
+    if (srLive) srLive.textContent = msg + (srNonce++ % 2 ? ' ' : ''); // vary so repeats re-read
+  }
+  function cardOf(uid) { uid = +uid; return { suit: Math.floor((uid - 1) / 13), rank: ((uid - 1) % 13) + 1 }; }
+  function cardName(uidOrCard) {
+    var c = (uidOrCard && typeof uidOrCard === 'object') ? uidOrCard : cardOf(uidOrCard);
+    return RANK_LABEL[c.rank] + ' ' + T('srSuits')[c.suit];
+  }
+  function destPhrase(dst) {
+    if (dst.kind === 'foundation') return T('srFoundation');
+    if (dst.kind === 'free') return T('srFree');
+    return T('srColumn') + ' ' + (dst.col + 1);
+  }
+  function kbDesc() { // what the keyboard cursor is currently on
+    if (kb.row === 'top') {
+      if (kb.i < 4) { var f = state.free[kb.i]; return T('srFree') + ' ' + (kb.i + 1) + ', ' + (f ? cardName(f) : T('srEmpty')); }
+      var s = kb.i - 4, top = state.foundations[s];
+      return T('srFoundation') + ' ' + T('srSuits')[s] + ', ' + (top ? RANK_LABEL[top] : T('srEmpty'));
+    }
+    var col = state.tableau[kb.i];
+    return T('srColumn') + ' ' + (kb.i + 1) + ', ' + (col.length ? cardName(col[col.length - 1]) : T('srEmpty'));
+  }
+
   function doMove(src, dst, opts) {
     opts = opts || {};
     var snap = E.clone(state);
@@ -267,6 +296,7 @@
     if (!res.ok) return false;
     lastMove = { uid: res.run[0].uid, src: src, dst: dst };
     if (!opts.noUndoPush) { undoStack.push(snap); redoStack = []; }
+    announce(cardName(res.run[0]) + ' ' + T('srTo') + ' ' + destPhrase(dst));
     startTiming();
     playMoveSound(dst);
     render(true);
@@ -308,7 +338,7 @@
   function setDeadEnd(on) {
     var el = document.getElementById('hud-deadend');
     if (el) el.classList.toggle('hidden', !on);
-    if (on && !deadEndShown) { toast(T('deadEnd')); deadEndShown = true; }
+    if (on && !deadEndShown) { toast(T('deadEnd')); announce(T('deadEnd')); deadEndShown = true; }
     else if (!on) deadEndShown = false;
   }
 
@@ -488,6 +518,7 @@
     selected = g;
     g.uids.forEach(function (u) { cardEls[u].classList.add('selected'); });
     highlightLegalTargets(g);
+    announce(cardName(g.uids[0]) + (g.uids.length > 1 ? ' +' + (g.uids.length - 1) : '') + ', ' + T('srSelected'));
   }
   function clearSelection() {
     if (selected) selected.uids.forEach(function (u) { cardEls[u] && cardEls[u].classList.remove('selected'); });
@@ -556,7 +587,7 @@
     var el = kbElement(); if (el) el.classList.add('kb-cursor');
   }
   function kbHide() { kb.active = false; paintCursor(); }
-  function kbNav(fn) { if (kb.active) fn(); else kb.active = true; paintCursor(); }
+  function kbNav(fn) { if (kb.active) fn(); else kb.active = true; paintCursor(); announce(kbDesc()); }
   function grabColumnRun(col) {
     var column = state.tableau[col];
     if (!column.length) return null;
@@ -615,6 +646,7 @@
     updateHud(); updateButtons();
     if (resumeState && state.moves > 0) startTiming(); // resumed mid-game -> keep clock
     saveCurrent();
+    announce(T('srNewGame', { n: state.number }));
     if (!D.isSolvableClassic(state.number) && state.number === 11982) toast(T('unsolvable'));
   }
 
@@ -762,6 +794,7 @@
   }
   function showHintVisual(h) {
     clearHintVisual();
+    announce(T('srHint', { card: cardName(h.uids[0]), dest: destPhrase(h.dest) }));
     var target = destElement(h.dest);
     if (target) target.classList.add('hint-target');
     if (motionReduced()) { // no fly: just pulse the source + ring the target
@@ -834,6 +867,7 @@
   function onWin() {
     if (won) return;
     won = true; finishing = false;
+    announce(T('srWon'));
     stopTiming();
     var secs = Math.round((elapsedBase) / 1000);
     window.Storage.recordResult(state.number, true, secs, state.moves);
@@ -1034,7 +1068,6 @@
     // settings controls
     buildLangSelect();
     seg('set-theme', window.Storage.theme, function (v) { window.Storage.setTheme(v); app.dataset.theme = v; });
-    seg('set-colorblind', window.Storage.colorblind ? '1' : '0', function (v) { window.Storage.setColorblind(v === '1'); app.dataset.cb = v === '1' ? '1' : '0'; });
     seg('set-motion', window.Storage.motion, function (v) { window.Storage.setMotion(v); app.dataset.motion = v; });
     seg('set-deadend', window.Storage.deadEndWarn ? '1' : '0', function (v) { window.Storage.setDeadEndWarn(v === '1'); scheduleDeadEndCheck(); });
     seg('set-autocollect', window.Storage.autoCollect ? '1' : '0', function (v) { window.Storage.setAutoCollect(v === '1'); });
@@ -1220,7 +1253,6 @@
     if (window.CARDS_SPRITE_INJECT) window.CARDS_SPRITE_INJECT();
     window.I18n.apply(document);
     app.dataset.theme = window.Storage.theme;
-    app.dataset.cb = window.Storage.colorblind ? '1' : '0';
     app.dataset.motion = window.Storage.motion;
     buildSlots();
     wire();

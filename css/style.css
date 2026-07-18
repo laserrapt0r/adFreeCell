@@ -27,7 +27,7 @@ html, body {
   --accent: #ffd166;
   --accent-2: #37c978;
   --danger: #ff6b6b;
-  --red-suit: #d40000;         /* ink for hearts/diamonds; colorblind mode brightens it */
+  --red-suit: #d40000;         /* ink for the red suits (hearts/diamonds), via currentColor */
   --bar: rgba(0, 0, 0, 0.28);
   --panel: #1c2733;
   --panel-2: #26333f;
@@ -65,10 +65,11 @@ html, body {
   --accent: #ffc0d2; --accent-2: #f0a3bb;
   --felt-a: #7a2f48; --felt-b: #531e30; --felt-c: #35131f;
 }
-/* colorblind-friendly deck: a higher-luminance vermilion for the red suits so
-   red-blind (protanopia) players can tell red from black; black stays black,
-   and the four suit SHAPES disambiguate the suits regardless of colour. */
-#app[data-cb="1"] { --red-suit: #ee4400; }
+/* visually hidden, still read by screen readers */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 
 /* ---------------- top bar ---------------- */
 #topbar {

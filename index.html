@@ -14,6 +14,9 @@
 <body>
   <div id="app" data-theme="felt">
 
+    <!-- Screen-reader announcements (moves, hints, game state) -->
+    <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Top bar -->
     <header id="topbar">
       <h1 id="brand"><span class="brand-ad">ad</span>FreeCell</h1>
@@ -52,7 +55,7 @@
 
     <!-- Play area: free cells + foundations on top, tableau below. Cards are
          positioned absolutely on top of these slots by game.js. -->
-    <main id="play">
+    <main id="play" role="group" data-i18n-aria="srBoard" aria-label="Board">
       <div id="cards"></div>
     </main>
 
@@ -67,7 +70,7 @@
     </footer>
 
     <!-- Win overlay -->
-    <div id="overlay-win" class="overlay">
+    <div id="overlay-win" class="overlay" role="dialog" aria-modal="true" data-i18n-aria="wonTitle" aria-label="wonTitle">
       <div class="card-panel win-card">
         <div class="win-emoji" aria-hidden="true">🏆</div>
         <h2 data-i18n="wonTitle">Gewonnen!</h2>
@@ -81,7 +84,7 @@
     </div>
 
     <!-- New-game / choose-number overlay -->
-    <div id="overlay-select" class="overlay">
+    <div id="overlay-select" class="overlay" role="dialog" aria-modal="true" data-i18n-aria="selectGameTitle" aria-label="selectGameTitle">
       <div class="card-panel">
         <h2 data-i18n="selectGameTitle">Spiel wählen</h2>
         <p id="select-progress" class="muted-line"></p>
@@ -109,7 +112,7 @@
     </div>
 
     <!-- How-to overlay -->
-    <div id="overlay-howto" class="overlay">
+    <div id="overlay-howto" class="overlay" role="dialog" aria-modal="true" data-i18n-aria="howToTitle" aria-label="howToTitle">
       <div class="card-panel">
         <h2 data-i18n="howToTitle">So wird gespielt</h2>
         <ul class="howto-list">
@@ -125,7 +128,7 @@
     </div>
 
     <!-- Stats overlay -->
-    <div id="overlay-stats" class="overlay">
+    <div id="overlay-stats" class="overlay" role="dialog" aria-modal="true" data-i18n-aria="statsTitle" aria-label="statsTitle">
       <div class="card-panel">
         <h2 data-i18n="statsTitle">Statistik</h2>
         <p id="stats-progress" class="muted-line"></p>
@@ -139,7 +142,7 @@
     </div>
 
     <!-- Deal browser overlay -->
-    <div id="overlay-browse" class="overlay">
+    <div id="overlay-browse" class="overlay" role="dialog" aria-modal="true" data-i18n-aria="browseTitle" aria-label="browseTitle">
       <div class="card-panel browse-panel">
         <h2 data-i18n="browseTitle">Deal-Übersicht</h2>
         <p id="browse-progress" class="muted-line"></p>
@@ -167,7 +170,7 @@
     </div>
 
     <!-- Settings overlay -->
-    <div id="overlay-settings" class="overlay">
+    <div id="overlay-settings" class="overlay" role="dialog" aria-modal="true" data-i18n-aria="settings" aria-label="settings">
       <div class="card-panel">
         <h2 data-i18n="settings">Einstellungen</h2>
         <div class="set-list">
@@ -192,13 +195,6 @@
               <small class="set-hint" data-i18n="leftyHint">Freizellen rechts, Ablagen links</small>
             </span>
             <div class="seg" id="set-lefty"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
-          </div>
-          <div class="set-row">
-            <span class="set-label">
-              <span data-i18n="colorblind">Farbenblind-freundlich</span>
-              <small class="set-hint" data-i18n="colorblindHint">Kräftigeres Rot, klar von Schwarz unterscheidbar</small>
-            </span>
-            <div class="seg" id="set-colorblind"><button data-val="1" data-i18n="on">An</button><button data-val="0" data-i18n="off">Aus</button></div>
           </div>
           <div class="set-row">
             <span class="set-label" data-i18n="motionLabel">Animationen</span>
