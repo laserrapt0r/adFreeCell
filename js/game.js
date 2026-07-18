@@ -627,6 +627,7 @@
     won = false; finishing = false;
     lastMove = null;
     undoStack = []; redoStack = [];
+    cancelWinAnimation();
     clearSelection();
     clearHintVisual();
     setDeadEnd(false);
@@ -875,7 +876,10 @@
     window.Sfx.play('win');
     document.getElementById('win-msg').textContent = T('wonMsg', { moves: state.moves, time: fmtTime(secs) });
     document.getElementById('win-progress').textContent = T('wonProgress', { number: state.number, n: window.Storage.solvedCount() });
-    setTimeout(function () { show('overlay-win'); confetti(); }, 500);
+    clearSelection(); clearHintVisual(); setDeadEnd(false);
+    var reveal = function () { show('overlay-win'); confetti(); };
+    if (motionReduced()) setTimeout(reveal, 400);   // respect reduced motion: skip the bounce
+    else startWinAnimation(reveal);
     updateButtons();
   }
 
@@ -946,6 +950,89 @@
     toastEl.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2200);
+  }
+
+  // ---- win animation: the foundation cards bounce out across the board ----
+  // (like the classic FreeCell victory). Click/key speeds it up, then skips;
+  // the win overlay only appears once it is done.
+  var WIN_VARIANTS = 3;
+  var winAnimating = false, winCleanup = null;
+  function cancelWinAnimation() {
+    if (!winAnimating) return;
+    winAnimating = false;
+    if (winCleanup) winCleanup();
+    winCleanup = null;
+  }
+  function startWinAnimation(onDone) {
+    var W = play.clientWidth, H = play.clientHeight, cw = m.cw, ch = m.ch;
+    var floor = H - ch, GRAV = 0.5, REST = 0.72;
+    var variant = Math.floor(Math.random() * WIN_VARIANTS);
+    // launch order: peel King -> Ace, cycling the four foundations (top card first)
+    var parts = [];
+    for (var rank = 13; rank >= 1; rank--) {
+      for (var suit = 3; suit >= 0; suit--) {
+        var uid = suit * 13 + rank, el = cardEls[uid];
+        if (el) parts.push({ el: el, suit: suit, launched: false, done: false, x: m.foundX[suit], y: m.topY });
+      }
+    }
+    var next = 0, launchTimer = 0, launchEvery = 3, frames = 0, speed = 1, skip = false, safety = null;
+
+    function launch(p, idx) {
+      p.launched = true; p.x = m.foundX[p.suit]; p.y = m.topY;
+      var cx = p.x + cw / 2, out = cx < W / 2 ? -1 : 1, R = Math.random;
+      if (variant === 0) { p.vx = (idx % 2 ? 1 : -1) * (4 + R() * 4); p.vy = -(2 + R() * 5); }       // bounce cascade
+      else if (variant === 1) { p.vx = (4 + R() * 3) * (R() < 0.5 ? -1 : 1); p.vy = -(11 + R() * 6); } // fountain
+      else { p.vx = out * (4 + R() * 5); p.vy = -(5 + R() * 6); }                                        // spray outward
+      p.el.classList.add('win-fly');
+      p.el.style.zIndex = 1000 + idx;
+    }
+    function step() {
+      if (next < parts.length && ++launchTimer >= launchEvery) { launchTimer = 0; launch(parts[next], next + 1); next++; }
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        if (!p.launched || p.done) continue;
+        p.vy += GRAV; p.x += p.vx; p.y += p.vy;
+        if (p.y >= floor && p.vy > 0) {
+          p.y = floor;
+          if (p.vy < 1.5) p.vy = 0;                     // grounded: keep sliding at constant speed
+          else { p.vy = -p.vy * REST; p.vx *= 0.985; }  // real bounce loses a little horizontal speed
+        }
+        if (p.x < -2 * cw || p.x > W + 2 * cw || p.y > H + 2 * ch) p.done = true;
+      }
+    }
+    function allDone() { if (next < parts.length) return false; for (var i = 0; i < parts.length; i++) if (!parts[i].done) return false; return true; }
+    function draw() { for (var i = 0; i < parts.length; i++) { var p = parts[i]; if (p.launched && !p.done) p.el.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px)'; } }
+
+    function frame() {
+      if (!winAnimating) return;
+      var steps = skip ? 60 : speed;
+      for (var s = 0; s < steps && !allDone(); s++) step();
+      draw();
+      frames++;
+      if (skip || allDone() || frames > 1500) { finish(); return; }
+      requestAnimationFrame(frame);
+    }
+    function onBoost() { if (speed < 4) speed = 4; else skip = true; } // 1st input: faster, 2nd: skip to the end
+    function onKey(e) { if (e.key !== 'Tab') onBoost(); }
+    function reset() {
+      if (safety) { clearTimeout(safety); safety = null; }
+      play.removeEventListener('pointerdown', onBoost);
+      document.removeEventListener('keydown', onKey, true);
+      for (var i = 0; i < parts.length; i++) { parts[i].el.classList.remove('win-fly'); parts[i].el.style.zIndex = ''; }
+    }
+    function finish() {
+      if (!winAnimating) return;
+      winAnimating = false; winCleanup = null;
+      reset();
+      render(false);   // snap cards back onto the foundations behind the overlay
+      onDone();
+    }
+
+    winAnimating = true; winCleanup = reset;
+    play.addEventListener('pointerdown', onBoost);
+    document.addEventListener('keydown', onKey, true);
+    safety = setTimeout(function () { skip = true; finish(); }, 14000); // never get stuck without the overlay
+    requestAnimationFrame(frame);
   }
 
   function confetti() {
