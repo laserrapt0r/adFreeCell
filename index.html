@@ -162,6 +162,15 @@
 
     <div id="toast" class="toast"></div>
     <canvas id="fx-canvas" class="fx-canvas"></canvas>
+
+    <!-- Shown on touch devices held in portrait: adFreeCell is a landscape game -->
+    <div id="rotate-notice">
+      <div class="rotate-inner">
+        <svg class="rotate-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1.5H7A2.5 2.5 0 0 0 4.5 4v16A2.5 2.5 0 0 0 7 22.5h10a2.5 2.5 0 0 0 2.5-2.5V4A2.5 2.5 0 0 0 17 1.5zM12 21a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM17.5 18h-11V4h11z"/></svg>
+        <h2 data-i18n="rotateTitle">Bitte Gerät drehen</h2>
+        <p data-i18n="rotateText">adFreeCell wird im Querformat gespielt.</p>
+      </div>
+    </div>
   </div>
 
   <script src="js/cards-sprite.js"></script>

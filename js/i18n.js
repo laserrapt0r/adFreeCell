@@ -34,6 +34,7 @@
       cardsLicense: 'Kartengrafik: „SVG-cards“ von David Bellot (LGPL-2.1).',
       installApp: 'App installieren', shareApp: 'Weiterempfehlen', linkCopied: 'Link kopiert!',
       supportDev: 'Entwickler unterstützen',
+      rotateTitle: 'Bitte Gerät drehen', rotateText: 'adFreeCell wird im Querformat gespielt.',
     },
     en: {
       tagline: 'FreeCell. No ad banner. No trackers. Just cards.',
@@ -65,6 +66,7 @@
       cardsLicense: 'Card artwork: “SVG-cards” by David Bellot (LGPL-2.1).',
       installApp: 'Install app', shareApp: 'Recommend', linkCopied: 'Link copied!',
       supportDev: 'Support the developer',
+      rotateTitle: 'Please rotate your device', rotateText: 'adFreeCell is played in landscape.',
     },
     es: {
       tagline: 'FreeCell. Sin anuncios. Sin rastreadores. Solo cartas.',
@@ -96,6 +98,7 @@
       cardsLicense: 'Cartas: «SVG-cards» de David Bellot (LGPL-2.1).',
       installApp: 'Instalar app', shareApp: 'Recomendar', linkCopied: 'Enlace copiado',
       supportDev: 'Apoyar al desarrollador',
+      rotateTitle: 'Gira el dispositivo', rotateText: 'adFreeCell se juega en horizontal.',
     },
     fr: {
       tagline: 'FreeCell. Sans pub. Sans traqueurs. Juste des cartes.',
@@ -127,6 +130,7 @@
       cardsLicense: 'Cartes : « SVG-cards » de David Bellot (LGPL-2.1).',
       installApp: 'Installer l’app', shareApp: 'Recommander', linkCopied: 'Lien copié',
       supportDev: 'Soutenir le développeur',
+      rotateTitle: 'Tournez l’appareil', rotateText: 'adFreeCell se joue en mode paysage.',
     },
     it: {
       tagline: 'FreeCell. Niente pubblicità. Niente tracker. Solo carte.',
@@ -158,6 +162,7 @@
       cardsLicense: 'Carte: «SVG-cards» di David Bellot (LGPL-2.1).',
       installApp: 'Installa app', shareApp: 'Consiglia', linkCopied: 'Link copiato',
       supportDev: 'Sostieni lo sviluppatore',
+      rotateTitle: 'Ruota il dispositivo', rotateText: 'adFreeCell si gioca in orizzontale.',
     },
   };
 

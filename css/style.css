@@ -157,20 +157,22 @@ html, body {
   padding-bottom: calc(8px + env(safe-area-inset-bottom));
   background: var(--bar);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  overflow-x: auto;
+  overflow: hidden;
 }
 .ctl {
   flex: 1 1 0;
-  min-width: 64px;
+  min-width: 0;                 /* allow shrinking so labels never overflow */
   padding: 10px 6px;
   border-radius: 11px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
-  font-size: 0.82rem;
+  font-size: clamp(0.72rem, 1.9vw, 0.9rem);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;      /* worst case: ellipsis, not overlap */
   transition: background .12s ease, transform .12s ease, opacity .12s;
 }
 .ctl:hover { background: rgba(255, 255, 255, 0.16); }
@@ -299,6 +301,41 @@ html, body {
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .fx-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 55; }
+
+/* ---------------- rotate-to-landscape notice ---------------- */
+/* adFreeCell is a landscape game. On a touch device held in portrait we cover
+   the board with a friendly "please rotate" hint instead of cramming 8 columns
+   into a narrow width. Desktop (fine pointer) is never affected. */
+#rotate-notice {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--felt-a), var(--felt-c));
+  color: var(--text);
+}
+.rotate-inner { max-width: 320px; }
+.rotate-inner h2 { font-size: 1.35rem; margin: 18px 0 8px; }
+.rotate-inner p { color: var(--muted); line-height: 1.5; }
+.rotate-ico {
+  width: 84px; height: 84px;
+  fill: var(--accent);
+  transform-origin: 50% 50%;
+  animation: rotatehint 2.6s ease-in-out infinite;
+}
+@keyframes rotatehint {
+  0%, 38% { transform: rotate(0deg); }
+  58%, 92% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  #rotate-notice { display: flex; }
+}
 
 /* Landscape phones: tighten the bars so the board gets the room */
 @media (max-height: 520px) {

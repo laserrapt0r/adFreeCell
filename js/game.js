@@ -172,7 +172,9 @@
         el.className = 'card';
         el.dataset.uid = id;
         var svgId = D.SUIT_ID[suit] + '_' + D.RANK_ID[rank];
-        el.innerHTML = '<svg viewBox="0 0 169.075 244.640" preserveAspectRatio="none">' +
+        // default preserveAspectRatio (xMidYMid meet) never distorts; the card
+        // box already matches the native 169.075:244.64 ratio, so it fills exactly.
+        el.innerHTML = '<svg viewBox="0 0 169.075 244.640">' +
           '<use href="#' + svgId + '" xlink:href="#' + svgId + '"/></svg>';
         cardEls[id] = el;
         cardsLayer.appendChild(el);

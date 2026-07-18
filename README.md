@@ -12,7 +12,7 @@ tablets while looking great on widescreen.
   <img src="screenshots/board.png" alt="adFreeCell on a widescreen — Game #1" width="640" />
 </p>
 <p align="center">
-  <img src="screenshots/mobile.png" alt="adFreeCell on a phone in portrait" width="220" />
+  <img src="screenshots/landscape.png" alt="adFreeCell on a phone in landscape" width="460" />
 </p>
 
 ## ▶️ Play online
@@ -51,9 +51,10 @@ completely offline, thanks to a service worker that caches the whole game.
 - **Undo / redo / restart** and an optimal-ish **hint**.
 - **Statistics:** games played and won, win rate, current & best streak, best
   time and fewest moves — stored locally.
-- **Made for every screen.** Fluid layout scales from small phones (portrait or
-  landscape) to tablets and widescreen desktops. Card size and fan spacing are
-  computed to always fit without scrolling.
+- **Made for every screen.** A fluid **landscape** layout scales from small
+  phones to tablets and widescreen desktops; card size and fan spacing are
+  computed to always fit without scrolling. Held in portrait, a touch device
+  shows a friendly “rotate your device” hint (FreeCell wants the width).
 - **Three table themes:** Felt, Midnight and Slate.
 - **5 languages:** German, English, Spanish, French and Italian (auto-detected).
 - **Synthesized sound** via the Web Audio API — no audio files, works offline.
