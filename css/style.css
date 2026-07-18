@@ -168,6 +168,7 @@ html, body {
 }
 .slot.hint-target { background: rgba(55, 201, 120, 0.14); }
 .card.no-anim { transition: none; }
+.card.hint-fly { transition: transform 0.55s cubic-bezier(.35, .85, .35, 1); } /* slow hint glide */
 
 /* ---------------- bottom controls ---------------- */
 #controls {

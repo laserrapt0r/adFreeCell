@@ -714,14 +714,15 @@
     h.uids.forEach(function (uid, k) {
       var el = cardEls[uid];
       el.classList.remove('no-anim');
+      el.classList.add('hint-fly');   // slower transition for a clearly visible glide
       el.style.zIndex = 2000 + k;
       el.style.transform = 'translate(' + dp.x + 'px,' + (dp.y + k * m.fan) + 'px)';
     });
-    hintTimer = setTimeout(clearHintVisual, 620); // fly (~.19s) + brief hold, then snap back
+    hintTimer = setTimeout(clearHintVisual, 1050); // slow glide (~.55s) + hold, then snap back
   }
   function clearHintVisual() {
     if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
-    for (var u in cardEls) cardEls[u].classList.remove('hint-target', 'hintful');
+    for (var u in cardEls) cardEls[u].classList.remove('hint-target', 'hintful', 'hint-fly');
     slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (sl) { sl.classList.remove('hint-target'); });
     if (hintFlying) { hintFlying = false; render(false); } // snap the flown cards back to their real spots
   }
