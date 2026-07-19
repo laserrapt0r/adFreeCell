@@ -74,8 +74,22 @@ jobs:
             fs.writeFileSync("twa-manifest.json", JSON.stringify(m, null, 2));
           '
 
-      - name: Decode keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/adfreecell-upload.jks
+      - name: Decode & verify keystore
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -e
+          printf '%s' "$KS_B64" | base64 -d > android/adfreecell-upload.jks 2>/dev/null \
+            || { echo "::error::ANDROID_KEYSTORE_BASE64 is not valid base64 — re-paste the single long line from store/KEYSTORE-SECRETS.txt."; exit 1; }
+          SZ=$(stat -c%s android/adfreecell-upload.jks)
+          echo "Keystore decoded: $SZ bytes"
+          if [ "$SZ" -lt 1000 ]; then
+            echo "::error::Decoded keystore is only $SZ bytes (expected ~2744). The ANDROID_KEYSTORE_BASE64 secret is empty or truncated — re-paste the whole single line from store/KEYSTORE-SECRETS.txt."; exit 1
+          fi
+          keytool -list -keystore android/adfreecell-upload.jks -storepass "$KS_PASS" -alias upload >/dev/null 2>ks.err \
+            || { echo "::error::Cannot open the keystore with ANDROID_KEYSTORE_PASSWORD (alias 'upload'). Check that secret. keytool said:"; cat ks.err; exit 1; }
+          echo "Keystore verified OK (alias 'upload')."
 
       - name: Build & sign AAB
         working-directory: android
