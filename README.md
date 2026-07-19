@@ -45,8 +45,9 @@ completely offline, thanks to a service worker that caches the whole game.
   (only the famously unsolvable **#11982** is skipped).
 - **Progress & difficulty.** Track how many of the 32000 deals you’ve solved,
   jump to any number or the next unsolved one, and pick a deal by difficulty
-  (Easy / Medium / Hard / Expert). Every deal’s tier is precomputed offline by a
-  solver (`tools/rate-difficulty.js`) from its search effort.
+  across **six tiers** (Very easy → Extreme). Each game shows its own tier, and
+  every deal’s rating is precomputed offline by the solver
+  (`tools/rate-diff2.js`) from its search effort.
 - **Supermoves.** Move a valid run of cards in one gesture, limited by the real
   FreeCell formula: *(1 + free cells) × 2^(empty columns)* — the game never lets
   you do something you couldn't do one card at a time.
@@ -61,9 +62,12 @@ completely offline, thanks to a service worker that caches the whole game.
   phones to tablets and widescreen desktops; card size and fan spacing are
   computed to always fit without scrolling. Held in portrait, a touch device
   shows a friendly “rotate your device” hint (FreeCell wants the width).
-- **Three table themes:** Felt, Midnight and Slate.
-- **5 languages:** German, English, Spanish, French and Italian (auto-detected).
-- **Synthesized sound** via the Web Audio API — no audio files, works offline.
+- **Six table themes** — Felt, Midnight, Slate, Coffee, Ocean and Rose — plus an
+  optional **left-handed** layout.
+- **15 languages**, auto-detected, including right-to-left Arabic.
+- **Accessible:** full keyboard control and screen-reader (ARIA) support.
+- **Show the solution.** Stuck on a deal? Let a full solution play out for you.
+- **Synthesized, gentle sound** via the Web Audio API — no audio files, works offline.
 - **Clean, modern cards** from the LGPL **playing-cards-standard-deck** (crisp
   vector art at any size).
 
@@ -107,7 +111,7 @@ adFreeCell/
 │   ├── deal.js                # Card model + Microsoft FreeCell deal
 │   ├── engine.js              # Pure FreeCell rules engine (no DOM)
 │   ├── storage.js             # Settings, stats & resume (localStorage)
-│   ├── i18n.js                # de / en / es / fr / it strings
+│   ├── i18n.js                # 15-language UI strings (RTL-aware)
 │   ├── audio.js               # Web Audio sound effects
 │   └── game.js                # Rendering, input and game flow
 ├── tools/
@@ -150,10 +154,14 @@ cards render and that a real drag move and Undo work.
 
 ## 🤖 Android app
 
-The game is structured to be wrapped as an Android app later (e.g. via a Trusted
-Web Activity or a WebView shell pointing at these static assets). Signing
-keystores (`*.jks`) and build outputs (`*.aab`, `*.apk`) are intentionally
-git-ignored and must never be committed.
+adFreeCell ships to the Play Store as a **Trusted Web Activity** (a thin Android
+wrapper around the hosted PWA), built with
+[Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap). A GitHub Actions
+workflow ([`.github/workflows/android-aab.yml`](.github/workflows/android-aab.yml))
+builds and signs the `.aab` from a keystore stored as an encrypted repo secret;
+the store listings, screenshots and publishing guide live under
+[`store/`](store/). Signing keystores (`*.jks`) and build outputs (`*.aab`,
+`*.apk`) are intentionally git-ignored and must never be committed.
 
 ---
 

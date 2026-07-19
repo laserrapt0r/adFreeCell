@@ -58,10 +58,25 @@
     // (deep columns stay readable). Only when that leaves cards small (a wide/short
     // phone screen) do we shorten the reserve so cards grow; deeper columns then
     // just compress the fan to fit.
+    var CAP = 150;             // never let a card grow past this (huge displays)
     var L0 = 13, cw = cwAt(13);
     var mobile = cw < MOBILE_CW;
-    if (mobile) while (cw < MOBILE_CW && L0 > 6) { L0--; cw = cwAt(L0); }
-    cw = Math.max(30, Math.min(cw, 150));
+    if (mobile) {
+      // Phones are height-limited too: grow the cards to fill the (short) height
+      // like widescreen — bigger cards with tight columns — instead of leaving
+      // them small and spreading the columns wide apart. A smaller reserve floor
+      // than desktop is fine here (deep columns just compress a bit more).
+      while (cw < CAP && L0 > 8) { var c2 = cwAt(L0 - 1); if (c2 <= cw + 0.3) break; L0--; cw = c2; }
+    } else {
+      // Widescreen bottleneck: the full 13-card reserve leaves cards small with a
+      // band of empty felt below. Grow the cards to fill the HEIGHT (shrinking the
+      // reserve) until they hit the size cap or the width becomes the binding
+      // constraint. A width-limited desktop window is unchanged (cwAt already
+      // caps at cwByW); only tall/short wide screens grow. Columns deeper than the
+      // reserve simply compress the fan below.
+      while (cw < CAP && L0 > 10) { var c2 = cwAt(L0 - 1); if (c2 <= cw + 0.3) break; L0--; cw = c2; }
+    }
+    cw = Math.max(30, Math.min(cw, CAP));
 
     var gap = k * cw;
     var ch = R * cw;
@@ -70,7 +85,7 @@
     // screens keep the original centred layout
     var minBoard = Ncol * cw + (Ncol - 1) * gap;
     var extra = (mobile && W - 2 * gap - minBoard > 0)
-      ? Math.min((W - 2 * gap - minBoard) / (Ncol - 1), cw * 0.5) : 0;
+      ? Math.min((W - 2 * gap - minBoard) / (Ncol - 1), cw * 0.10) : 0;
     var step = cw + gap + extra;
     var boardW = Ncol * cw + (Ncol - 1) * (gap + extra);
     var originX = Math.max(gap, (W - boardW) / 2);
@@ -81,7 +96,7 @@
     var maxLen = 1;
     if (state) for (var c = 0; c < 8; c++) maxLen = Math.max(maxLen, state.tableau[c].length);
     var availH = H - tableauY - gap;
-    var fanMax = fr * ch;
+    var fanMax = 0.40 * ch;    // let short columns fan out to fill the height; deeper columns still compress via the min() below (fr stays 0.26 only for the size reserve)
     var fan = fanMax;
     // taller-than-design columns simply compress the fan so they always fit
     // (the accessible bottom card stays fully visible); no hard minimum
@@ -1285,6 +1300,20 @@
     });
 
     window.addEventListener('resize', function () { render(false); });
+    // Re-layout when the visible area changes without a window resize event —
+    // notably when iOS Safari's address bar slides in/out (the board is 100dvh,
+    // so its box shrinks/grows and the cards must be re-sized to match).
+    if (window.ResizeObserver) { new ResizeObserver(function () { render(false); }).observe(play); }
+    // Hard-stop iOS Safari's double-tap-to-zoom on the board: it fights the game's
+    // own double-tap (send home) and CSS touch-action isn't reliably honoured on
+    // iOS. The game already acted on pointerup, so cancelling the 2nd touchend's
+    // default only kills the zoom, not the move.
+    var lastTouchEnd = 0;
+    play.addEventListener('touchend', function (e) {
+      var now = Date.now();
+      if (now - lastTouchEnd <= 350) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
     document.addEventListener('i18n:changed', function () { updateHud(); });
     window.addEventListener('beforeunload', saveCurrent);
     document.addEventListener('visibilitychange', function () { if (document.hidden) { saveCurrent(); } });
@@ -1455,13 +1484,22 @@
     buildSlots();
     wire();
 
-    // deep link ?game=123, else resume, else fresh random
+    // deep links: ?theme=ocean, ?game=123 (else resume, else fresh random), ?open=panel
     var params = new URLSearchParams(location.search);
+    var th = params.get('theme');
+    if (th) app.dataset.theme = th;
     var g = parseInt(params.get('game'), 10);
-    if (g && g > 0) { newGame(g); return; }
-    var saved = window.Storage.loadCurrent();
-    if (saved && saved.state && saved.state.t) newGame(saved.number, saved);
-    else newGame(D.randomSolvableNumber());
+    if (g && g > 0) {
+      newGame(g);
+    } else {
+      var saved = window.Storage.loadCurrent();
+      if (saved && saved.state && saved.state.t) newGame(saved.number, saved);
+      else newGame(D.randomSolvableNumber());
+    }
+    var open = params.get('open');
+    if (open === 'browse') openBrowse();
+    else if (open === 'select') openSelect();
+    else if (open === 'settings') show('overlay-settings');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
