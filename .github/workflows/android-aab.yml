@@ -33,33 +33,8 @@ jobs:
         with:
           node-version: "18"
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Install Android platform + build-tools
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
-
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
-
-      - name: Point Bubblewrap at the CI JDK + Android SDK
-        run: |
-          mkdir -p "$HOME/.bubblewrap"
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
-
-      - name: Set version
-        working-directory: android
-        run: |
-          node -e '
-            const fs=require("fs"); const m=JSON.parse(fs.readFileSync("twa-manifest.json","utf8"));
-            m.appVersionName="${{ github.event.inputs.versionName }}";
-            m.appVersionCode=parseInt("${{ github.event.inputs.versionCode }}",10);
-            fs.writeFileSync("twa-manifest.json", JSON.stringify(m,null,2));
-          '
 
       - name: Decode keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/adfreecell-upload.jks
@@ -69,8 +44,24 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        # `yes` accepts Bubblewrap's "generate the Android project?" prompt on a clean checkout
-        run: yes | bubblewrap build --skipPwaValidation
+        # Bubblewrap self-installs its own JDK + Android SDK on first run and only
+        # prompts interactively (for "versionName") while GENERATING the project.
+        # Fighting that single prompt non-interactively is brittle, so we build in
+        # two steps for an exact, deterministic version:
+        #   1. `yes` accepts every prompt  ->  JDK/SDK download + a throwaway build
+        #      (this leaves versionName="y", which we discard).
+        #   2. patch the exact versionName/versionCode into the generated
+        #      app/build.gradle, then rebuild the existing project — no prompts,
+        #      no regeneration, so the patched version is what ships.
+        run: |
+          set -e
+          yes | bubblewrap build --skipPwaValidation || true
+          test -f app/build.gradle || { echo "::error::Bubblewrap did not generate the Android project"; exit 1; }
+          sed -i 's/versionCode [0-9][0-9]*/versionCode ${{ github.event.inputs.versionCode }}/' app/build.gradle
+          sed -i 's/versionName "[^"]*"/versionName "${{ github.event.inputs.versionName }}"/' app/build.gradle
+          echo "Building: $(grep -E 'versionName|versionCode' app/build.gradle | tr -s ' \n' ' ')"
+          rm -f app-release-bundle.aab app-release-signed.apk app-release-unsigned-aligned.apk
+          bubblewrap build --skipPwaValidation </dev/null
 
       - name: Clean up keystore
         if: always()
