@@ -89,6 +89,11 @@ jobs:
         # unexpected prompt fails fast instead of hanging.
         run: |
           set -e
+          # The runner pre-sets ANDROID_SDK_ROOT to its own SDK; Bubblewrap points
+          # gradle at OUR SDK via ANDROID_HOME. Two different SDK paths make the
+          # Android Gradle plugin abort, so pin both env vars to our SDK.
+          export ANDROID_HOME="$HOME/android-sdk"
+          export ANDROID_SDK_ROOT="$HOME/android-sdk"
           bubblewrap update --skipVersionUpgrade --skipPwaValidation </dev/null
           bubblewrap build --skipPwaValidation </dev/null
           echo "Built: $(grep -E 'versionName|versionCode' app/build.gradle | tr -s ' \n' ' ')"
