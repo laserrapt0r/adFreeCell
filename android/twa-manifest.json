@@ -1,0 +1,41 @@
+{
+  "packageId": "de.tommywurzbacher.adfreecell",
+  "host": "laserrapt0r.github.io",
+  "name": "adFreeCell",
+  "launcherName": "adFreeCell",
+  "display": "standalone",
+  "orientation": "landscape",
+  "themeColor": "#0f5132",
+  "themeColorDark": "#0a3d26",
+  "navigationColor": "#0a3d26",
+  "navigationColorDark": "#0a3d26",
+  "navigationDividerColor": "#0a3d26",
+  "navigationDividerColorDark": "#0a3d26",
+  "backgroundColor": "#0a3d26",
+  "enableNotifications": false,
+  "startUrl": "/adFreeCell/",
+  "iconUrl": "https://laserrapt0r.github.io/adFreeCell/icons/icon-512.png",
+  "maskableIconUrl": "https://laserrapt0r.github.io/adFreeCell/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./adfreecell-upload.jks",
+    "alias": "upload"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://laserrapt0r.github.io/adFreeCell/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "minSdkVersion": 21
+}

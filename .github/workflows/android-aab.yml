@@ -1,0 +1,85 @@
+name: Build Android AAB (TWA)
+
+# Builds a signed Android App Bundle (.aab) for the Play Store from the PWA,
+# using Bubblewrap (Trusted Web Activity). Run it manually from the Actions tab.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   base64 of adfreecell-upload.jks  (base64 -w0 adfreecell-upload.jks)
+#   ANDROID_KEYSTORE_PASSWORD keystore password
+#   ANDROID_KEY_PASSWORD      key password (same as the keystore password here)
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Version name (e.g. 1.0.0)"
+        required: false
+        default: "1.0.0"
+      versionCode:
+        description: "Version code (integer, must increase every upload)"
+        required: false
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android platform + build-tools
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Point Bubblewrap at the CI JDK + Android SDK
+        run: |
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+
+      - name: Set version
+        working-directory: android
+        run: |
+          node -e '
+            const fs=require("fs"); const m=JSON.parse(fs.readFileSync("twa-manifest.json","utf8"));
+            m.appVersionName="${{ github.event.inputs.versionName }}";
+            m.appVersionCode=parseInt("${{ github.event.inputs.versionCode }}",10);
+            fs.writeFileSync("twa-manifest.json", JSON.stringify(m,null,2));
+          '
+
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/adfreecell-upload.jks
+
+      - name: Build & sign AAB
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        # `yes` accepts Bubblewrap's "generate the Android project?" prompt on a clean checkout
+        run: yes | bubblewrap build --skipPwaValidation
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f android/adfreecell-upload.jks
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adFreeCell-android
+          path: |
+            android/app-release-bundle.aab
+            android/app-release-signed.apk
+          if-no-files-found: warn

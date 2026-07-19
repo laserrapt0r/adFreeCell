@@ -1,0 +1,24 @@
+=== APP TITLE (max 30 characters) ===
+adFreeCell – FreeCell
+
+=== SHORT DESCRIPTION (max 80 characters) ===
+Classic FreeCell solitaire — no ads, no trackers, plays fully offline.
+
+=== FULL DESCRIPTION (max 4000 characters) ===
+adFreeCell is classic FreeCell solitaire, just the way you know it — but with no ad banners, no trackers and no nonsense. Just you and the cards.
+
+FEATURES
+• The original game numbers: Deal #617 is the same board for everyone — pick, share and replay any number from 1 to 32000.
+• Always winnable: “New game” chooses a guaranteed-solvable deal (only the famously unsolvable #11982 is skipped).
+• Progress & difficulty: track how many of the 32000 deals you’ve solved, jump to the next unsolved one, and choose by difficulty — from “Very easy” to “Extreme”, computed for every deal and shown in-game.
+• Smart hint: a strong solver suggests a sensible next move — without going in circles.
+• Watch the solution: let a full solution of the current deal play out for you.
+• Comfort features: auto-collect safe cards, double-tap to send a card home, one-click moves, undo/redo and a dead-end warning.
+• Play your way: drag-and-drop or tap-to-move; full keyboard control; screen-reader support.
+• Made for every screen: a fluid landscape layout from phones to 7" and 10" tablets and the desktop.
+• 15 languages, 6 table themes, a left-handed layout and gentle, cosy sound.
+
+PRIVACY
+adFreeCell collects nothing, sends nothing and shows no ads. No accounts, no trackers, no special permissions. After the first load everything runs 100% offline; your settings and statistics stay only on your device.
+
+Ad-free, free of charge and open source. If you enjoy the game, an optional tip is always welcome — entirely up to you.

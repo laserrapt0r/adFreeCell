@@ -1,0 +1,24 @@
+=== APP-TITEL (max. 30 Zeichen) ===
+adFreeCell – FreeCell Solitär
+
+=== KURZBESCHREIBUNG (max. 80 Zeichen) ===
+Klassisches FreeCell-Solitär – ohne Werbung, ohne Tracker, offline spielbar.
+
+=== VOLLSTÄNDIGE BESCHREIBUNG (max. 4000 Zeichen) ===
+adFreeCell ist klassisches FreeCell-Solitär, wie du es kennst – aber ohne Werbebanner, ohne Tracker und ohne Schnickschnack. Nur du und die Karten.
+
+FUNKTIONEN
+• Die Original-Spielnummern: Deal #617 ist bei allen dasselbe Blatt – wähle, teile und wiederhole jede Nummer von 1 bis 32000.
+• Immer lösbar: „Neues Spiel“ wählt ein garantiert lösbares Blatt (nur das berühmt-unlösbare #11982 wird ausgelassen).
+• Fortschritt & Schwierigkeit: Verfolge, wie viele der 32000 Deals du gelöst hast, springe zum nächsten offenen und wähle nach Schwierigkeit – von „Sehr leicht“ bis „Extrem“, für jedes Blatt berechnet und im Spiel angezeigt.
+• Cleverer Tipp: Ein starker Solver schlägt dir einen sinnvollen nächsten Zug vor – ohne im Kreis zu laufen.
+• Lösung ansehen: Lass dir eine komplette Lösung des aktuellen Deals vorspielen.
+• Komfort: automatisches Aufräumen, Doppeltipp legt eine Karte aufs Haus, Ein-Klick-Züge, Rückgängig/Wiederholen und eine Sackgassen-Warnung.
+• Bedienung nach Wahl: Ziehen & Ablegen oder Antippen; volle Tastatursteuerung; Screenreader-Unterstützung.
+• Für jeden Bildschirm gemacht: flüssiges Querformat vom Handy über 7"- und 10"-Tablets bis zum Desktop.
+• 15 Sprachen, 6 Tisch-Designs, Linkshänder-Layout und dezente, wohlige Klänge.
+
+DATENSCHUTZ
+adFreeCell sammelt nichts, sendet nichts und zeigt keine Werbung. Keine Konten, keine Tracker, keine besonderen Berechtigungen. Nach dem ersten Laden läuft alles zu 100 % offline; deine Einstellungen und Statistiken bleiben nur lokal auf deinem Gerät.
+
+Werbefrei, kostenlos und quelloffen. Wenn dir das Spiel gefällt, freut sich der Entwickler über ein optionales Trinkgeld – rein freiwillig.

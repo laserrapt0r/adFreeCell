@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "de.tommywurzbacher.adfreecell",
+      "sha256_cert_fingerprints": [
+        "80:CE:CC:36:68:4D:D9:79:B3:FC:A4:E9:CA:E7:F8:84:2B:55:36:0C:ED:E0:91:08:1D:21:1E:3C:74:7E:50:A7"
+      ]
+    }
+  }
+]
