@@ -33,8 +33,34 @@ jobs:
         with:
           node-version: "18"
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
+
+      # Bubblewrap is very picky about the Android SDK: its validatePath() only
+      # accepts a path that contains a `tools` OR `bin` folder, and it looks for
+      # build-tools EXACTLY at build-tools/34.0.0. We set that up by hand (the
+      # official setup-android layout with cmdline-tools/latest is rejected), and
+      # point Bubblewrap at this SDK + the CI JDK via ~/.bubblewrap/config.json so
+      # it never prompts to download/accept a JDK or SDK.
+      - name: Set up a Bubblewrap-compatible Android SDK
+        run: |
+          set -e
+          export ANDROID_HOME="$HOME/android-sdk"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -sSL -o /tmp/cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q /tmp/cmdtools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMGR" --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
+          "$SDKMGR" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-34" "build-tools;34.0.0" >/dev/null
+          mkdir -p "$ANDROID_HOME/tools"   # marker so Bubblewrap's validatePath() accepts the SDK
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
 
       - name: Decode keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/adfreecell-upload.jks
@@ -44,15 +70,16 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        # Bubblewrap self-installs its own JDK + Android SDK on first run and only
-        # prompts interactively (for "versionName") while GENERATING the project.
-        # Fighting that single prompt non-interactively is brittle, so we build in
-        # two steps for an exact, deterministic version:
-        #   1. `yes` accepts every prompt  ->  JDK/SDK download + a throwaway build
-        #      (this leaves versionName="y", which we discard).
-        #   2. patch the exact versionName/versionCode into the generated
-        #      app/build.gradle, then rebuild the existing project — no prompts,
-        #      no regeneration, so the patched version is what ships.
+        # Two-step build for an exact, deterministic version. Bubblewrap prompts
+        # for versionName only while generating the project and can't be fed that
+        # reliably, so:
+        #   1. `yes` accepts the generate + versionName prompts -> a throwaway "y"
+        #      build that also writes app/build.gradle and manifest-checksum.txt.
+        #      (build-tools 34.0.0 is pre-installed, so no license prompt stalls it.)
+        #   2. patch the exact versionName/versionCode into app/build.gradle, then
+        #      rebuild. With a valid checksum Bubblewrap won't re-prompt; `printf n`
+        #      answers the "regenerate project?" prompt with "no" just in case, and
+        #      (unlike `yes |`) sends finite input so pipefail sees no SIGPIPE.
         run: |
           set -e
           yes | bubblewrap build --skipPwaValidation || true
@@ -61,12 +88,7 @@ jobs:
           sed -i 's/versionName "[^"]*"/versionName "${{ github.event.inputs.versionName }}"/' app/build.gradle
           echo "Building: $(grep -E 'versionName|versionCode' app/build.gradle | tr -s ' \n' ' ')"
           rm -f app-release-bundle.aab app-release-signed.apk app-release-unsigned-aligned.apk
-          # Step 2 rebuilds the existing (patched) project. Bubblewrap first asks
-          # "no checksum found — regenerate the project? (Y/n)"; answer 'n' so it
-          # keeps our patched app/build.gradle instead of regenerating from the
-          # manifest (which would re-prompt for versionName). `yes n` also covers
-          # any further y/n prompt without ever regenerating.
-          yes n | bubblewrap build --skipPwaValidation
+          printf 'n\n' | bubblewrap build --skipPwaValidation
 
       - name: Clean up keystore
         if: always()
