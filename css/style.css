@@ -146,8 +146,15 @@ html, body {
   position: relative;
   min-height: 0;
   overflow: hidden;
+  /* iOS Safari fires double-tap-to-zoom unless touch-action is set on the
+     element actually tapped (a body-level rule is ignored for the zoom gesture).
+     'manipulation' kills the double-tap zoom + 300ms delay but keeps pinch-zoom. */
+  touch-action: manipulation;
 }
-#cards { position: absolute; inset: 0; }
+#cards { position: absolute; inset: 0; touch-action: manipulation; }
+/* belt-and-suspenders: the tap can land on a card's inner <svg>/<path>, and iOS
+   reads touch-action from the exact hit element — so cover every descendant too. */
+#play * { touch-action: manipulation; }
 
 /* slots (free cells, foundations, empty-column markers) */
 .slot {
@@ -159,6 +166,7 @@ html, body {
   border: 1.5px solid var(--slot-line);
   display: grid; place-items: center;
   transition: box-shadow .12s ease, background .12s ease;
+  touch-action: manipulation;
 }
 .slot .pip {
   font-size: calc(var(--cw) * 0.42);
@@ -191,6 +199,7 @@ html, body {
   /* the new deck has no baked-in border; add a hairline so fanned cards read */
   border: 1px solid rgba(0, 0, 0, 0.32);
   overflow: hidden;
+  touch-action: manipulation;   /* stop iOS double-tap-to-zoom on a card */
 }
 .card svg { display: block; width: 100%; height: 100%; }
 .card.red-suit { color: var(--red-suit); }   /* drives the red ink via currentColor */
