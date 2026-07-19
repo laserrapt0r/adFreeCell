@@ -10,7 +10,8 @@ using your keystore, which you store as an encrypted secret.
 | File | Purpose |
 |------|---------|
 | `listing-de.txt`, `listing-en.txt` | Store title, short & full description (within Play's limits) |
-| `screenshots/` | Phone (1920×1080), 7″ tablet (1920×1200) and 10″ tablet (2560×1600) shots — all 16∶9 / 16∶10, valid for Play |
+| `screenshots/de/`, `screenshots/en/` | German & English shots — phone 2340×1170, 7″ tablet 1920×1200, 10″ tablet 2560×1600 (valid Play ratios) |
+| `feature-graphic-de.png`, `feature-graphic-en.png` | 1024×500 feature graphics (German / English) |
 | `KEYSTORE-SECRETS.txt` | **git-ignored** — the keystore password + base64 to paste into GitHub secrets |
 | `../android/twa-manifest.json` | Bubblewrap config (package `de.tommywurzbacher.adfreecell`, landscape, icons) |
 | `../.well-known/assetlinks.json` | Digital Asset Links (see step 4) |
@@ -61,11 +62,13 @@ show a URL bar.
 - **App name / short / full description:** copy from `listing-de.txt` (German)
   and `listing-en.txt` (English). Add more languages later if you like.
 - **Privacy policy URL:** `https://laserrapt0r.github.io/adFreeCell/privacy.html`
-- **Screenshots:** upload from `screenshots/` — the `phone-*`, `tab7-*` and
-  `tab10-*` images into the phone, 7″ and 10″ tablet slots respectively (2–8 each).
+- **Screenshots:** upload from `screenshots/de/` (German listing) and
+  `screenshots/en/` (English listing) — the `phone-*` (2340×1170), `tab7-*`
+  (1920×1200) and `tab10-*` (2560×1600) images into the phone, 7″ and 10″ tablet
+  slots respectively (2–8 each).
 - **App icon:** 512×512 — use `../icons/icon-512.png` (or the maskable one).
-- **Feature graphic:** 1024×500 — not generated here; create one if you want the
-  richer listing (optional).
+- **Feature graphic:** 1024×500 — use `feature-graphic-de.png` (German listing)
+  and `feature-graphic-en.png` (English listing).
 - **Category:** Games → Card. **Contact email:** tommy.wurzbacher@googlemail.com
 - Fill in the content rating questionnaire (no objectionable content), data
   safety form (no data collected/shared), and pricing (free).
