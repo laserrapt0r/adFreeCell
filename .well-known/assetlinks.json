@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "de.tommywurzbacher.adfreecell",
       "sha256_cert_fingerprints": [
-        "80:CE:CC:36:68:4D:D9:79:B3:FC:A4:E9:CA:E7:F8:84:2B:55:36:0C:ED:E0:91:08:1D:21:1E:3C:74:7E:50:A7"
+        "80:CE:CC:36:68:4D:D9:79:B3:FC:A4:E9:CA:E7:F8:84:2B:55:36:0C:ED:E0:91:08:1D:21:1E:3C:74:7E:50:A7",
+        "99:B7:CF:E2:3C:A6:76:26:E0:6C:0D:94:4C:6F:20:87:FE:7E:B5:24:5C:EB:48:D7:09:45:E8:7B:82:5D:9F:F4"
       ]
     }
   }
