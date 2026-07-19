@@ -61,7 +61,12 @@ jobs:
           sed -i 's/versionName "[^"]*"/versionName "${{ github.event.inputs.versionName }}"/' app/build.gradle
           echo "Building: $(grep -E 'versionName|versionCode' app/build.gradle | tr -s ' \n' ' ')"
           rm -f app-release-bundle.aab app-release-signed.apk app-release-unsigned-aligned.apk
-          bubblewrap build --skipPwaValidation </dev/null
+          # Step 2 rebuilds the existing (patched) project. Bubblewrap first asks
+          # "no checksum found — regenerate the project? (Y/n)"; answer 'n' so it
+          # keeps our patched app/build.gradle instead of regenerating from the
+          # manifest (which would re-prompt for versionName). `yes n` also covers
+          # any further y/n prompt without ever regenerating.
+          yes n | bubblewrap build --skipPwaValidation
 
       - name: Clean up keystore
         if: always()
