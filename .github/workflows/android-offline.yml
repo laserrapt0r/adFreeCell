@@ -1,0 +1,86 @@
+name: Build Offline Android app (WebView)
+
+# Builds a signed, 100% OFFLINE Android App Bundle: the whole game is bundled
+# inside the APK (no network, no INTERNET permission) and rendered in a WebView.
+# Run it manually from the Actions tab. Uses the same repo secrets as the TWA
+# build (ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_PASSWORD).
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Version name (e.g. 1.0.1)"
+        required: false
+        default: "1.0.1"
+      versionCode:
+        description: "Version code (integer, must increase every upload)"
+        required: false
+        default: "2"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Bundle the game into the APK assets
+        working-directory: android-app
+        run: |
+          A=app/src/main/assets
+          rm -rf "$A"; mkdir -p "$A"
+          cp ../index.html ../manifest.webmanifest ../privacy.html "$A/"
+          cp -r ../css ../js ../icons "$A/"
+          echo "bundled $(find "$A" -type f | wc -l) files"
+
+      - name: Generate launcher icons
+        working-directory: android-app
+        run: |
+          gen() { mkdir -p "app/src/main/res/mipmap-$1"; convert "$2" -resize "$3x$3" "app/src/main/res/mipmap-$1/$4"; }
+          for d in "mdpi 48" "hdpi 72" "xhdpi 96" "xxhdpi 144" "xxxhdpi 192"; do
+            set -- $d; gen "$1" ../icons/icon-512.png "$2" ic_launcher.png; gen "$1" ../icons/icon-512.png "$2" ic_launcher_round.png
+          done
+          for d in "mdpi 108" "hdpi 162" "xhdpi 216" "xxhdpi 324" "xxxhdpi 432"; do
+            set -- $d; gen "$1" ../icons/icon-maskable-512.png "$2" ic_launcher_foreground.png
+          done
+
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/adfc-upload.jks"
+
+      - name: Build signed AAB + APK
+        working-directory: android-app
+        env:
+          ADFC_KEYSTORE: ${{ github.workspace }}/adfc-upload.jks
+          ADFC_STOREPASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ADFC_KEYALIAS: upload
+          ADFC_KEYPASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --console=plain \
+            -PversionName="${{ github.event.inputs.versionName }}" \
+            -PversionCode="${{ github.event.inputs.versionCode }}" \
+            :app:bundleRelease :app:assembleRelease
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f "${{ github.workspace }}/adfc-upload.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adFreeCell-offline
+          path: |
+            android-app/app/build/outputs/bundle/release/app-release.aab
+            android-app/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: warn

@@ -154,12 +154,21 @@ cards render and that a real drag move and Undo work.
 
 ## 🤖 Android app
 
-adFreeCell ships to the Play Store as a **Trusted Web Activity** (a thin Android
-wrapper around the hosted PWA), built with
-[Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap). A GitHub Actions
-workflow ([`.github/workflows/android-aab.yml`](.github/workflows/android-aab.yml))
-builds and signs the `.aab` from a keystore stored as an encrypted repo secret;
-the store listings, screenshots and publishing guide live under
+Two ways to package it for the Play Store — both build a **signed `.aab` in
+GitHub Actions** from a keystore stored as an encrypted repo secret:
+
+- **Fully offline (recommended).** A thin **WebView** app in
+  [`android-app/`](android-app/) that **bundles the whole game inside the APK**.
+  No network, no `INTERNET` permission — it works 100% offline from the very
+  first launch. Build:
+  [`.github/workflows/android-offline.yml`](.github/workflows/android-offline.yml).
+- **Trusted Web Activity.** A thin wrapper (built with
+  [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap)) that loads the
+  PWA live from GitHub Pages — needs internet on first launch, then the service
+  worker caches it. Config in [`android/`](android/), build:
+  [`.github/workflows/android-aab.yml`](.github/workflows/android-aab.yml).
+
+Store listings, screenshots and the publishing guide live under
 [`store/`](store/). Signing keystores (`*.jks`) and build outputs (`*.aab`,
 `*.apk`) are intentionally git-ignored and must never be committed.
 

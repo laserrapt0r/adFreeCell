@@ -1,0 +1,19 @@
+# Build output
+/build
+/app/build
+.gradle
+local.properties
+*.aab
+*.apk
+*.jks
+*.keystore
+
+# Copied into the APK at build time (from the repo root — not duplicated in git)
+/app/src/main/assets/
+
+# Generated from icons/ at build time
+/app/src/main/res/mipmap-mdpi/
+/app/src/main/res/mipmap-hdpi/
+/app/src/main/res/mipmap-xhdpi/
+/app/src/main/res/mipmap-xxhdpi/
+/app/src/main/res/mipmap-xxxhdpi/

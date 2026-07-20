@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'de.tommywurzbacher.adfreecell'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "de.tommywurzbacher.adfreecell"
+        minSdk 21
+        targetSdk 34
+        // Override on the command line: -PversionCode=3 -PversionName=1.0.2
+        versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 2
+        versionName project.hasProperty('versionName') ? project.versionName : "1.0.1"
+    }
+
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("ADFC_KEYSTORE")
+            if (ksPath != null) {
+                storeFile file(ksPath)
+                storePassword System.getenv("ADFC_STOREPASS")
+                keyAlias System.getenv("ADFC_KEYALIAS") ?: "upload"
+                keyPassword System.getenv("ADFC_KEYPASS") ?: System.getenv("ADFC_STOREPASS")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.8.0'
+}
