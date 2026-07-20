@@ -1299,11 +1299,26 @@
       if (!won) onKeyGame(e);
     });
 
-    window.addEventListener('resize', function () { render(false); });
-    // Re-layout when the visible area changes without a window resize event —
-    // notably when iOS Safari's address bar slides in/out (the board is 100dvh,
-    // so its box shrinks/grows and the cards must be re-sized to match).
+    // The app fills the visible viewport height. iOS Safari's `dvh` mis-measures
+    // in landscape (compact address bar), leaving a green strip below the bottom
+    // bar, so measure the REAL visible height from visualViewport and pin it as
+    // --appvh (CSS uses it in preference to dvh). Re-measure whenever the address
+    // bar slides in/out — which fires visualViewport 'resize'/'scroll', not always
+    // a window 'resize'.
+    function fitHeight() {
+      var vv = window.visualViewport;
+      document.documentElement.style.setProperty('--appvh',
+        Math.round(vv ? vv.height : window.innerHeight) + 'px');
+      if (state) render(false);
+    }
+    window.addEventListener('resize', fitHeight);
+    window.addEventListener('orientationchange', function () { setTimeout(fitHeight, 250); });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', fitHeight);
+      window.visualViewport.addEventListener('scroll', fitHeight);
+    }
     if (window.ResizeObserver) { new ResizeObserver(function () { render(false); }).observe(play); }
+    fitHeight();
     // Hard-stop iOS Safari's double-tap-to-zoom on the board: it fights the game's
     // own double-tap (send home) and CSS touch-action isn't reliably honoured on
     // iOS. The game already acted on pointerup, so cancelling the 2nd touchend's
