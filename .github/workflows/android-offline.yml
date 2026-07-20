@@ -15,7 +15,7 @@ on:
       versionCode:
         description: "Version code (integer, must increase every upload)"
         required: false
-        default: "3"
+        default: "4"
 
 permissions:
   contents: read
