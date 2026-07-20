@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>vh test</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font: 20px/1.5 -apple-system, system-ui, monospace;
+    background: #0a3d26; color: #fff;
+    /* fills the same way the game's #app does */
+    height: 100dvh;
+    display: flex; flex-direction: column;
+  }
+  header { background: #0f5132; padding: 10px 14px; font-weight: 700; }
+  #mid { flex: 1 1 auto; padding: 14px; white-space: pre; }
+  /* a bar pinned to the very bottom of THIS box, like the game's control bar */
+  footer {
+    background: #ffd166; color: #0a3d26; font-weight: 800;
+    padding: 16px; text-align: center;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  .probe { position: fixed; left: -10px; top: 0; width: 1px; visibility: hidden; }
+</style>
+</head>
+<body>
+  <header>vh-Diagnose — mach 2 Screenshots</header>
+  <div id="mid">lädt…</div>
+  <footer>⬇ Diese gelbe Leiste sollte am unteren Rand kleben ⬇</footer>
+
+  <script>
+    ['dvh','svh','lvh'].forEach(function (u) {
+      var d = document.createElement('div'); d.className = 'probe'; d.id = 'p_' + u;
+      d.style.height = '100' + u; document.body.appendChild(d);
+    });
+    var sab = document.createElement('div'); sab.className = 'probe'; sab.id = 'p_sab';
+    sab.style.height = 'env(safe-area-inset-bottom)'; document.body.appendChild(sab);
+
+    function h(id) { return Math.round(parseFloat(getComputedStyle(document.getElementById(id)).height)); }
+    function upd() {
+      var vv = window.visualViewport;
+      document.getElementById('mid').textContent = [
+        'screen:            ' + screen.width + ' x ' + screen.height,
+        'window.inner:      ' + window.innerWidth + ' x ' + window.innerHeight,
+        'doc.clientHeight:  ' + document.documentElement.clientHeight,
+        'visualViewport.h:  ' + (vv ? Math.round(vv.height) : '-'),
+        'visualViewport.off:' + (vv ? Math.round(vv.offsetTop) : '-'),
+        '100dvh:            ' + h('p_dvh'),
+        '100svh:            ' + h('p_svh'),
+        '100lvh:            ' + h('p_lvh'),
+        'safe-area-bottom:  ' + h('p_sab'),
+        '',
+        '① Screenshot MIT Adressleiste',
+        '② Adressleiste ausblenden, ② Screenshot'
+      ].join('\n');
+    }
+    upd();
+    window.addEventListener('resize', upd);
+    window.addEventListener('orientationchange', function () { setTimeout(upd, 300); });
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', upd);
+      visualViewport.addEventListener('scroll', upd);
+    }
+  </script>
+</body>
+</html>
