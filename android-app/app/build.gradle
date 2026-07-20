@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'de.tommywurzbacher.adfreecell'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "de.tommywurzbacher.adfreecell"
         minSdk 21
-        targetSdk 34
+        targetSdk 35
         // Override on the command line: -PversionCode=3 -PversionName=1.0.2
         versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 2
         versionName project.hasProperty('versionName') ? project.versionName : "1.0.1"
