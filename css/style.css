@@ -45,7 +45,11 @@ html, body {
   color: var(--text);
   background:
     radial-gradient(120% 80% at 50% -10%, var(--felt-a) 0%, var(--felt-b) 45%, var(--felt-c) 100%);
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* No safe-area padding at the BOTTOM here: it changes with iOS Safari's address
+     bar (20px shown / 0 hidden) and would push the whole board up, exposing a felt
+     strip under the control bar. The bottom safe-area lives on #controls instead,
+     so the bar reaches the screen edge and only its text clears the home bar. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 #app[data-theme="midnight"] {
   --accent: #7cc7ff; --accent-2: #7cffd0;
