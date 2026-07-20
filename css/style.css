@@ -237,7 +237,10 @@ html, body {
   display: flex;
   gap: 8px;
   padding: 8px 12px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  /* Keep the buttons close to the bottom edge. iOS reports safe-area-inset-bottom
+     as ~20px only while the Safari address bar is shown, which made the buttons
+     jump up and look detached from the edge; a small fixed padding is steadier. */
+  padding-bottom: 8px;
   background: var(--bar);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
@@ -499,7 +502,7 @@ html, body {
   .top-right { gap: 5px; }
   .icon-btn { width: 32px; height: 32px; }
   .icon-btn svg { width: 17px; height: 17px; }
-  #controls { padding: 4px 8px; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  #controls { padding: 4px 8px; padding-bottom: 6px; }
   .ctl { padding: 6px 5px; font-size: 0.72rem; }
 }
 @media (max-height: 400px) {
@@ -507,7 +510,7 @@ html, body {
   #brand { font-size: 0.95rem; }
   .icon-btn { width: 29px; height: 29px; }
   .icon-btn svg { width: 15px; height: 15px; }
-  #controls { padding: 3px 6px; padding-bottom: calc(3px + env(safe-area-inset-bottom)); }
+  #controls { padding: 3px 6px; padding-bottom: 6px; }
   .ctl { padding: 5px 4px; font-size: 0.68rem; }
 }
 
