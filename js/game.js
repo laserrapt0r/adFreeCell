@@ -92,15 +92,17 @@
     var topY = gap * 1.2;
     var tableauY = topY + ch + sg * ch;
 
-    // fan adapts to the longest current column so it always fits the height
-    var maxLen = 1;
-    if (state) for (var c = 0; c < 8; c++) maxLen = Math.max(maxLen, state.tableau[c].length);
     var availH = H - tableauY - gap;
     var fanMax = 0.40 * ch;    // let short columns fan out to fill the height; deeper columns still compress via the min() below (fr stays 0.26 only for the size reserve)
-    var fan = fanMax;
-    // taller-than-design columns simply compress the fan so they always fit
-    // (the accessible bottom card stays fully visible); no hard minimum
-    if (maxLen > 1) fan = Math.min(fanMax, (availH - ch) / (maxLen - 1));
+    // The fan is computed PER COLUMN: only a column that actually runs out of
+    // height squeezes its cards together — the other columns keep the full
+    // spread. (One long column used to compress the whole board.) The bottom,
+    // playable card always stays fully visible; there is no hard minimum.
+    var fans = [];
+    for (var fc = 0; fc < 8; fc++) {
+      var flen = state ? state.tableau[fc].length : 1;
+      fans.push(flen > 1 ? Math.min(fanMax, (availH - ch) / (flen - 1)) : fanMax);
+    }
 
     var colX = [], i;
     for (i = 0; i < 8; i++) colX.push(originX + i * step);
@@ -110,7 +112,7 @@
     var sep = Math.min(cw * 0.55, Math.max(0, originX - gap));
     m = {
       W: W, H: H, cw: cw, ch: ch, gap: gap,
-      topY: topY, tableauY: tableauY, fan: fan,
+      topY: topY, tableauY: tableauY, fan: fanMax, fans: fans,
       colX: colX,
       freeX: [colX[0] - sep, colX[1] - sep, colX[2] - sep, colX[3] - sep],
       foundX: [colX[4] + sep, colX[5] + sep, colX[6] + sep, colX[7] + sep],
@@ -148,7 +150,7 @@
     for (c = 0; c < 8; c++) {
       var col = state.tableau[c];
       for (d = 0; d < col.length; d++) {
-        pos[col[d].uid] = { x: m.colX[c], y: m.tableauY + d * m.fan, z: 10 + d };
+        pos[col[d].uid] = { x: m.colX[c], y: m.tableauY + d * m.fans[c], z: 10 + d };
       }
     }
     return pos;
@@ -868,7 +870,7 @@
     if (dest.kind === 'foundation') return { x: m.foundX[dest.suit], y: m.topY };
     if (dest.kind === 'free') return { x: m.freeX[dest.i], y: m.topY };
     var col = state.tableau[dest.col];
-    return { x: m.colX[dest.col], y: m.tableauY + col.length * m.fan };
+    return { x: m.colX[dest.col], y: m.tableauY + col.length * m.fans[dest.col] };
   }
   function motionReduced() {
     var mo = window.Storage.motion;
@@ -897,7 +899,8 @@
       el.classList.remove('no-anim');
       el.classList.add('hint-fly');   // slower transition for a clearly visible glide
       el.style.zIndex = 2000 + k;
-      el.style.transform = 'translate(' + dp.x + 'px,' + (dp.y + k * m.fan) + 'px)';
+      var stackFan = h.dest.kind === 'tableau' ? m.fans[h.dest.col] : m.fan;
+      el.style.transform = 'translate(' + dp.x + 'px,' + (dp.y + k * stackFan) + 'px)';
     });
     hintTimer = setTimeout(clearHintVisual, 1050); // slow glide (~.55s) + hold, then snap back
   }
