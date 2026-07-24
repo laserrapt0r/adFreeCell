@@ -433,7 +433,8 @@
     }
     var uid = +cardEl.dataset.uid;
     var g = grabbable(uid);
-    if (!g) { // locked card (e.g. foundation) -> ignore, clear selection
+    if (!g) { // not movable: a buried tableau card wiggles; foundation cards are just ignored
+      if (locate(uid).kind === 'tableau') shake(uid);
       clearSelection();
       return;
     }
@@ -498,13 +499,39 @@
   var lastTapUid = -1, lastTapTime = 0;
   // double-click/tap a card -> fly it home if it can go to a foundation,
   // otherwise into the first open free cell
+  // true if the picked-up card/run can legally move anywhere right now
+  function hasAnyMove(g) {
+    if (!g) return false;
+    if (bestAutoDest(g)) return true;                        // foundation / tableau / empty column
+    if (g.uids.length === 1) for (var i = 0; i < 4; i++) if (!state.free[i]) return true; // a free cell
+    return false;
+  }
+
+  // quick horizontal wiggle to signal "nothing happens with this card". Uses the
+  // Web Animations API with composite:'add' so it rides on top of the card's
+  // positioning transform instead of overwriting it. Debounced so a double-tap
+  // (two events) wiggles once.
+  var lastShake = {};
+  function shake(uid) {
+    var el = cardEls[uid];
+    if (!el || !el.animate || motionReduced()) return;
+    var now = Date.now();
+    if (lastShake[uid] && now - lastShake[uid] < 350) return;
+    lastShake[uid] = now;
+    el.animate(
+      [{ transform: 'translateX(0)' }, { transform: 'translateX(-7px)' },
+       { transform: 'translateX(6px)' }, { transform: 'translateX(-4px)' },
+       { transform: 'translateX(3px)' }, { transform: 'translateX(0)' }],
+      { duration: 300, easing: 'ease-in-out', composite: 'add' });
+  }
+
   function doubleClickAction(uid) {
     clearSelection();
     var g = grabbable(uid);
-    if (!g || g.uids.length !== 1) return;
+    if (!g || g.uids.length !== 1) { shake(uid); return; }
     var dest = autoDest(uid); // foundation if legal
     if (!dest) { for (var i = 0; i < 4; i++) if (!state.free[i]) { dest = { kind: 'free', i: i }; break; } }
-    if (dest) doMove(g.src, dest); else window.Sfx.play('bad');
+    if (dest) doMove(g.src, dest); else { window.Sfx.play('bad'); shake(uid); }
   }
 
   function handleTap(uid, g) {
@@ -532,7 +559,8 @@
     if (oneClick()) {
       var auto = bestAutoDest(g);
       if (auto && doMove(g.src, auto)) return;
-      // nowhere obvious -> select so the user can pick (e.g. a free cell)
+      // no move at all -> wiggle; otherwise select so the user can pick (e.g. a free cell)
+      if (!hasAnyMove(g)) { shake(uid); return; }
     }
     setSelection(g);
   }
