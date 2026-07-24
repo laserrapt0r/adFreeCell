@@ -1,13 +1,15 @@
 /* adFreeCell - tiny Web Audio sound effects. No audio files: every sound is
-   synthesized on the fly, so it works fully offline. The palette is deliberately
-   soft and warm — gentle sine tones for the "voice" of each action, with a short
-   burst of band-passed noise layered on for the paper "snap" of a real card. A
-   global low-pass keeps it mellow, like cards on a felt table (not a sharp click). */
+   synthesized on the fly, so it works fully offline. Card actions are built from
+   a short, bright burst of filtered noise — the crisp "snap" of card stock — on
+   a bus that skips the warm low-pass so the click survives; a soft low tone adds
+   the "tok" of the table. Reward/feedback cues (foundation, win, bad) keep their
+   gentle sine "voice" through the warm low-pass. */
 (function () {
   'use strict';
 
   var ctx = null;
   var master = null;
+  var bright = null;
   var noiseBuf = null;
 
   function ensure() {
@@ -22,6 +24,10 @@
       var warm = ctx.createBiquadFilter();
       warm.type = 'lowpass'; warm.frequency.value = 2200; warm.Q.value = 0.2;
       master.connect(warm); warm.connect(ctx.destination);
+      // a separate "bright" bus for the card snaps: it SKIPS the warm low-pass so
+      // the crisp high-frequency click of card stock survives (that transient is
+      // exactly what makes it read as a card).
+      bright = ctx.createGain(); bright.gain.value = 0.5; bright.connect(ctx.destination);
       // one small buffer of white noise, reused for every card texture
       var len = Math.floor(ctx.sampleRate * 0.25);
       noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -47,35 +53,35 @@
     o.start(t0); o.stop(t0 + dur + 0.05);
   }
 
-  // a short burst of band-passed noise: the "paper" texture of a real card. Very
-  // fast attack + short decay = a soft snap/flick; the global low-pass keeps it
-  // mellow (a card on felt, not a sharp click). freq sets its character.
-  function noise(t0, dur, peak, freq, q) {
+  // a short, bright burst of filtered noise = the crisp "snap"/"flick" of card
+  // stock. Instant onset (a click), fast decay, routed to the bright bus so it
+  // keeps its high end. `type` defaults to a broad high-pass (a snap); 'bandpass'
+  // gives a more focused "shh" (a slide). `freq` sets the character.
+  function noise(t0, dur, peak, freq, type, q) {
     var src = ctx.createBufferSource();
     src.buffer = noiseBuf;
     var f = ctx.createBiquadFilter();
-    f.type = 'bandpass'; f.frequency.value = freq || 1500; f.Q.value = q || 0.8;
+    f.type = type || 'highpass'; f.frequency.value = freq || 1900; f.Q.value = q || 0.6;
     var g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(peak || 0.1, t0 + 0.004);   // crisp snap onset
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);          // quick fade
-    src.connect(f); f.connect(g); g.connect(master);
+    g.gain.setValueAtTime(peak || 0.12, t0);                       // instant click onset
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);         // fast decay
+    src.connect(f); f.connect(g); g.connect(bright);
     src.start(t0); src.stop(t0 + dur + 0.02);
   }
 
   var SOUNDS = {
-    // pick up: a light flick of card paper + a soft warm blip (a gentle "lift")
-    pick: function (t) { noise(t, 0.04, 0.08, 2100, 0.9); tone(392, t, 0.11, 0.09); },
-    // place / release (very frequent) -> a soft card snap on felt over a warm low thump
-    place: function (t) { noise(t, 0.06, 0.13, 1500, 0.7); tone(196, t, 0.17, 0.14); tone(392, t, 0.10, 0.045); },
-    // into a free cell -> a card sliding into its slot (softer, longer paper) + a gentle mid tone
-    cell: function (t) { noise(t, 0.085, 0.09, 1250, 0.5); tone(330, t, 0.14, 0.10); },
-    // onto a foundation -> the card snaps home, then a soft rewarding rising chime
-    foundation: function (t) { noise(t, 0.05, 0.10, 1700, 0.8); tone(523.25, t, 0.17, 0.13); tone(783.99, t + 0.08, 0.22, 0.10); },
+    // pick up: a light, quick paper flick (bright, very short)
+    pick: function (t) { noise(t, 0.028, 0.11, 2600); },
+    // place / release: a crisp card snap + a soft low "tok" as it lands on felt
+    place: function (t) { noise(t, 0.03, 0.20, 1800); tone(120, t, 0.055, 0.13); },
+    // into a free cell: a short slide ("shh") that clicks into the slot
+    cell: function (t) { noise(t, 0.05, 0.12, 1500, 'bandpass', 0.7); noise(t + 0.045, 0.02, 0.13, 2600); },
+    // onto a foundation: the card snaps home, then a soft rewarding rising chime
+    foundation: function (t) { noise(t, 0.03, 0.17, 2100); tone(523.25, t + 0.02, 0.17, 0.11); tone(783.99, t + 0.10, 0.22, 0.09); },
     // invalid move -> a soft, low, non-buzzy "nope" (was a harsh sawtooth)
     bad: function (t) { tone(196, t, 0.18, 0.11); tone(155.56, t + 0.09, 0.22, 0.09); },
-    // dealing (played many times quickly) -> a short, quiet card flick
-    deal: function (t) { noise(t, 0.035, 0.08, 1800, 0.8); },
+    // dealing (played many times quickly) -> a quick, light card tick
+    deal: function (t) { noise(t, 0.02, 0.13, 2200); },
     // win -> a warm root pad under a soft pentatonic bloom
     win: function (t) {
       var notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
