@@ -14,7 +14,7 @@ apt-get update -qq >/dev/null 2>&1
 apt-get install -y -qq openjdk-17-jdk-headless unzip zip curl imagemagick >/dev/null 2>&1
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
-# --- Android SDK (persisted in /sdk2), API 35 ---
+# --- Android SDK (persisted in /sdk2), API 36 ---
 export ANDROID_HOME=/sdk2/android-sdk ANDROID_SDK_ROOT=/sdk2/android-sdk
 if [ ! -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
   mkdir -p "$ANDROID_HOME/cmdline-tools"
@@ -24,8 +24,8 @@ if [ ! -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
 fi
 SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 yes | "$SDKMGR" --sdk_root="$ANDROID_HOME" --licenses >/dev/null 2>&1 || true
-[ -d "$ANDROID_HOME/build-tools/35.0.0" ] || \
-  "$SDKMGR" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-35" "build-tools;35.0.0" >/dev/null 2>&1
+[ -d "$ANDROID_HOME/build-tools/36.0.0" ] || \
+  "$SDKMGR" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-36" "build-tools;36.0.0" >/dev/null 2>&1
 
 cd /work/android-app
 
