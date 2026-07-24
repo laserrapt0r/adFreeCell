@@ -510,19 +510,33 @@
   // quick horizontal wiggle to signal "nothing happens with this card". Uses the
   // Web Animations API with composite:'add' so it rides on top of the card's
   // positioning transform instead of overwriting it. Debounced so a double-tap
-  // (two events) wiggles once.
+  // (two events) wiggles once. `dir` (+1/-1) flips the wiggle direction.
   var lastShake = {};
-  function shake(uid) {
+  function shakeOne(uid, dir) {
     var el = cardEls[uid];
-    if (!el || !el.animate || motionReduced()) return;
+    if (!el || !el.animate) return;
+    var s = dir < 0 ? -1 : 1;
+    el.animate(
+      [{ transform: 'translateX(0)' }, { transform: 'translateX(' + (-7 * s) + 'px)' },
+       { transform: 'translateX(' + (6 * s) + 'px)' }, { transform: 'translateX(' + (-4 * s) + 'px)' },
+       { transform: 'translateX(' + (3 * s) + 'px)' }, { transform: 'translateX(0)' }],
+      { duration: 300, easing: 'ease-in-out', composite: 'add' });
+  }
+  // wiggle the tapped card plus every card stacked on top of it (further down the
+  // fan, i.e. a higher index in the same tableau column). Each successive card
+  // wiggles the opposite way for a lively "the whole pile is stuck" ripple.
+  function shake(uid) {
+    if (motionReduced()) return;
     var now = Date.now();
     if (lastShake[uid] && now - lastShake[uid] < 350) return;
     lastShake[uid] = now;
-    el.animate(
-      [{ transform: 'translateX(0)' }, { transform: 'translateX(-7px)' },
-       { transform: 'translateX(6px)' }, { transform: 'translateX(-4px)' },
-       { transform: 'translateX(3px)' }, { transform: 'translateX(0)' }],
-      { duration: 300, easing: 'ease-in-out', composite: 'add' });
+    var loc = locate(uid);
+    if (loc && loc.kind === 'tableau') {
+      var col = state.tableau[loc.col];
+      for (var d = loc.index; d < col.length; d++) shakeOne(col[d].uid, (d - loc.index) % 2 === 0 ? 1 : -1);
+    } else {
+      shakeOne(uid, 1);
+    }
   }
 
   function doubleClickAction(uid) {
