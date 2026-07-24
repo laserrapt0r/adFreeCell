@@ -24,14 +24,19 @@ Easiest: run the **“Build Offline Android app (WebView)”** GitHub Actions
 workflow ([`../.github/workflows/android-offline.yml`](../.github/workflows/android-offline.yml)),
 which sets the version, decodes the keystore secret and signs the `.aab`.
 
-Locally (needs a JDK 17 + Android SDK; the wrapper fetches Gradle):
+Locally, one command does everything (bundle the game, generate icons, build &
+sign) inside Docker — and hands every file back to your user, so it **never
+leaves root-owned files** behind:
 
 ```bash
-# from the repo root: copy the game in + generate icons first (the CI workflow
-# shows the exact commands), then, in android-app/:
-ADFC_KEYSTORE=$PWD/../adfreecell-upload.jks ADFC_STOREPASS=… ADFC_KEYALIAS=upload \
-  ./gradlew -PversionName=1.0.1 -PversionCode=2 :app:bundleRelease :app:assembleRelease
+./android-app/build-local.sh 1.0.1 4        # versionName versionCode
 ```
 
-Outputs land in `app/build/outputs/` (`bundle/release/app-release.aab`,
-`apk/release/app-release.apk`).
+It reads the keystore password from `$ADFC_STOREPASS` (else prompts) and caches
+the SDK/Gradle in `~/.cache/adfreecell-android`, so only the first run downloads
+them. The signed `.aab`/`.apk` land in `../store/`.
+
+> Why no root-owned files: the container must run as root (for `apt`), but its
+> `docker-build.sh` `trap`s EXIT and `chown`s the working tree back to
+> `$HOST_UID:$HOST_GID` on the way out. If you ever prefer builds that never
+> touch your machine at all, use the GitHub Actions workflow instead.
