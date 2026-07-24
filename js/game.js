@@ -1298,11 +1298,29 @@
     seg('set-deadend', window.Storage.deadEndWarn ? '1' : '0', function (v) { window.Storage.setDeadEndWarn(v === '1'); scheduleDeadEndCheck(); });
     seg('set-autocollect', window.Storage.autoCollect ? '1' : '0', function (v) { window.Storage.setAutoCollect(v === '1'); });
     seg('set-oneclick', window.Storage.oneClick ? '1' : '0', function (v) { window.Storage.setOneClick(v === '1'); });
-    seg('set-sound', window.Storage.soundOn ? '1' : '0', function (v) { window.Storage.setSound(v === '1'); });
+    seg('set-sound', window.Storage.soundOn ? '1' : '0', function (v) { window.Storage.setSound(v === '1'); syncSoundUI(); });
     seg('set-timer', window.Storage.showTimer ? '1' : '0', function (v) { window.Storage.setShowTimer(v === '1'); updateHud(); });
     seg('set-lefty', window.Storage.lefty ? '1' : '0', function (v) { window.Storage.setLefty(v === '1'); render(false); });
 
     document.getElementById('btn-share').onclick = shareApp;
+    // quick sound on/off toggle in the top bar (kept in sync with the Settings dialog)
+    function syncSoundUI() {
+      var on = window.Storage.soundOn, btn = document.getElementById('btn-sound');
+      btn.classList.toggle('muted', !on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      var box = document.getElementById('set-sound');
+      if (box) box.querySelectorAll('button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.val === (on ? '1' : '0'));
+      });
+    }
+    document.getElementById('btn-sound').onclick = function () {
+      var on = !window.Storage.soundOn;
+      window.Storage.setSound(on);
+      syncSoundUI();
+      if (on) { window.Sfx.unlock(); window.Sfx.play('place'); } // confirm with a soft cue
+    };
+    syncSoundUI();
+
     document.getElementById('btn-donate').onclick = function () { show('overlay-tip'); }; // ask first, don't jump straight to PayPal
     document.getElementById('btn-tip-send').onclick = function () { openDonate(); hideTip(); };
     document.getElementById('btn-tip-later').onclick = hideTip;

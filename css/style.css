@@ -140,6 +140,11 @@ html, body {
 .icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
 .donate-btn svg { fill: #ff7a8a; }
 .donate-btn:hover svg { fill: #ff5c70; }
+/* sound toggle: show the speaker or the muted-speaker, never both */
+.icon-btn .i-off { display: none; }
+.icon-btn.muted .i-on { display: none; }
+.icon-btn.muted .i-off { display: block; }
+.icon-btn.muted { opacity: .68; }
 
 /* right-to-left languages (Arabic): flow the chrome RTL, but keep the card
    board itself left-to-right (its layout is computed, order matters) */
