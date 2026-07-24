@@ -11,8 +11,8 @@ android {
         minSdk 21
         targetSdk 35
         // Override on the command line: -PversionCode=3 -PversionName=1.0.2
-        versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 4
-        versionName project.hasProperty('versionName') ? project.versionName : "1.0.1"
+        versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 5
+        versionName project.hasProperty('versionName') ? project.versionName : "1.0.2"
     }
 
     signingConfigs {
