@@ -42,6 +42,8 @@
 
   function on() { return !(window.Storage && Storage.soundOn === false); }
 
+  var lastDeal = 0;   // throttle timestamp for the dealing flicks
+
   // one soft enveloped tone: gentle attack (no click) and a smooth exponential
   // decay (no abrupt cut), so it sounds rounded and cosy.
   function tone(freq, t0, dur, peak, type) {
@@ -84,13 +86,15 @@
     foundation: function (t) { noise(t, 0.045, 0.10, 880, 'bandpass', 0.9); tone(523.25, t + 0.02, 0.17, 0.10); tone(783.99, t + 0.10, 0.22, 0.08); },
     // invalid move -> a soft, low, non-buzzy "nope" (was a harsh sawtooth)
     bad: function (t) { tone(196, t, 0.18, 0.11); tone(155.56, t + 0.09, 0.22, 0.09); },
-    // dealing: fired once per card, ~8ms apart for all 52. If every tick were
-    // identical they'd reinforce into a pitched machine-gun buzz, so each one is
-    // randomised (centre freq + level) and uses a broad, low-Q filter — 52 of them
-    // overlapping then read as a soft, natural paper riffle instead of a tone.
+    // dealing: the animation fires this once per card, ~8ms apart for all 52.
+    // Playing all 52 is an ultra-fast "drrr" buzz, so we THROTTLE to about one
+    // flick every 40ms (~a dozen over the whole deal) and randomise each — low and
+    // soft — so it reads as a handful of cards flicked out, not a machine gun.
     deal: function (t) {
-      var f = 1100 + Math.random() * 900;
-      noise(t, 0.02, 0.045 + Math.random() * 0.03, f, 'bandpass', 0.5);
+      if (t - lastDeal < 0.04) return;
+      lastDeal = t;
+      var f = 480 + Math.random() * 380;
+      noise(t, 0.045, 0.08 + Math.random() * 0.04, f, 'bandpass', 0.8);
     },
     // win -> a warm root pad under a soft pentatonic bloom
     win: function (t) {
