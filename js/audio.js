@@ -42,7 +42,9 @@
 
   function on() { return !(window.Storage && Storage.soundOn === false); }
 
-  var lastDeal = 0;   // throttle timestamp for the dealing flicks
+  var lastDeal = -1;  // throttle timestamp for the dealing flicks (-1: a fresh
+                      // AudioContext starts at currentTime 0, so 0 would swallow
+                      // the very first flicks of the first deal)
 
   // one soft enveloped tone: gentle attack (no click) and a smooth exponential
   // decay (no abrupt cut), so it sounds rounded and cosy.

@@ -1,6 +1,8 @@
 package de.tommywurzbacher.adfreecell;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.WebChromeClient;
@@ -42,6 +44,17 @@ public class MainActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
             }
+
+            // External links (the PayPal tip button) go to the system browser —
+            // the app itself has no INTERNET permission, so navigating the
+            // WebView there would just show an error page.
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri url = request.getUrl();
+                if ("appassets.androidplatform.net".equals(url.getHost())) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, url)); } catch (Exception ignored) { }
+                return true;
+            }
         });
 
         WebSettings s = webView.getSettings();
@@ -72,7 +85,22 @@ public class MainActivity extends Activity {
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
-            super.onBackPressed();
+            // background the game instead of killing it: an accidental Back no
+            // longer throws the player out (progress is saved anyway; resume is
+            // instant from recents)
+            moveTaskToBack(true);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (webView != null) webView.onPause();   // stop JS timers/audio in background
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) webView.onResume();
     }
 }

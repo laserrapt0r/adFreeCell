@@ -267,8 +267,12 @@
   }
   function within(x, slotX) { return x >= slotX - m.gap * 0.5 && x <= slotX + m.cw + m.gap * 0.5; }
 
-  // resolve an abstract target into a concrete destination for a run
-  function resolveDest(target, uids) {
+  // resolve an abstract target into a concrete destination for a run. `src` (the
+  // run's origin) makes "back where it came from" resolve to null — a cancel,
+  // not a move (it used to hop a free-cell card into a DIFFERENT empty cell, and
+  // mark the run's own column as a drop target). The tableau branch mirrors
+  // applyMove's legality checks so the live drop highlight never lies.
+  function resolveDest(target, uids, src) {
     if (!target) return null;
     var lead = { suit: uidSuit(uids[0]), rank: uidRank(uids[0]) };
     if (target.kind === 'foundation-zone') {
@@ -276,12 +280,21 @@
       return null;
     }
     if (target.kind === 'free') {
-      if (uids.length === 1 && !state.free[target.i]) return { kind: 'free', i: target.i };
+      if (uids.length !== 1) return null;
+      if (src && src.kind === 'free' && src.i === target.i) return null; // its own cell = cancel
+      if (!state.free[target.i]) return { kind: 'free', i: target.i };
       // fall back to any empty free cell
-      if (uids.length === 1) for (var f = 0; f < 4; f++) if (!state.free[f]) return { kind: 'free', i: f };
+      for (var f = 0; f < 4; f++) if (!state.free[f]) return { kind: 'free', i: f };
       return null;
     }
-    if (target.kind === 'tableau') return { kind: 'tableau', col: target.col };
+    if (target.kind === 'tableau') {
+      if (src && src.kind === 'tableau' && src.col === target.col) return null; // its own column = cancel
+      var col = state.tableau[target.col];
+      var toEmpty = col.length === 0;
+      if (!toEmpty && !E.canStack(lead, col[col.length - 1])) return null;
+      if (uids.length > E.maxSupermove(state, toEmpty)) return null;
+      return { kind: 'tableau', col: target.col };
+    }
     return null;
   }
 
@@ -374,8 +387,16 @@
     else if (!on) deadEndShown = false;
   }
 
+  // Sweeps re-schedule themselves with setTimeout, so a state jump (undo, redo,
+  // new game) must invalidate any chain still in flight — otherwise the pending
+  // tick fires against the NEW state and keeps playing cards the user just took
+  // back (or into a freshly dealt game). Bumping the generation kills them.
+  var sweepGen = 0;
+
   // auto-collect obviously-safe cards, one at a time (animated)
-  function safeSweep() {
+  function safeSweep(gen) {
+    if (gen === undefined) gen = sweepGen;
+    if (gen !== sweepGen || won) return;   // state jumped since this tick was scheduled
     var mv = E.nextSafeMove(state);
     if (!mv) { maybeAutoFinish(); return; }
     var snap = E.clone(state);
@@ -385,7 +406,7 @@
     render(true);
     updateHud(); updateButtons(); saveCurrent(); scheduleDeadEndCheck();
     if (E.isWon(state)) { onWin(); return; }
-    setTimeout(safeSweep, 150);
+    setTimeout(function () { safeSweep(gen); }, 150);
   }
 
   function maybeAutoFinish() {
@@ -397,7 +418,9 @@
   }
 
   // greedily send everything home (only ever called when the game is winnable)
-  function finishSweep() {
+  function finishSweep(gen) {
+    if (gen === undefined) gen = sweepGen;
+    if (gen !== sweepGen || !finishing) return;   // undo/new game aborts the sweep
     var mv = E.nextFoundationMove(state);
     if (!mv) { finishing = false; if (E.isWon(state)) onWin(); return; }
     var snap = E.clone(state);
@@ -406,7 +429,7 @@
     window.Sfx.play('foundation');
     render(true);
     updateHud(); updateButtons();
-    setTimeout(finishSweep, 110);
+    setTimeout(function () { finishSweep(gen); }, 110);
   }
 
   // ================= input =================
@@ -475,7 +498,7 @@
       cardEls[o.uid].style.transform = 'translate(' + (o.x + dx) + 'px,' + (o.y + dy) + 'px)';
     });
     // live highlight of a valid drop target
-    highlightDrop(resolveDest(targetAt(p.x, p.y), drag.g.uids));
+    highlightDrop(resolveDest(targetAt(p.x, p.y), drag.g.uids, drag.g.src));
   }
 
   // the browser took the gesture away (Android fires pointercancel when it
@@ -507,9 +530,13 @@
     if (!d.moved) { handleTap(d.uid, d.g); render(true); return; }
 
     var p = relPoint(e);
-    var dest = resolveDest(targetAt(p.x, p.y), d.g.uids);
+    var tgt = targetAt(p.x, p.y);
+    var dest = resolveDest(tgt, d.g.uids, d.g.src);
     if (dest && doMove(d.g.src, dest)) return;
-    window.Sfx.play('bad');
+    // dropping back where the run came from is a cancel, not a mistake — no buzz
+    var overSrc = tgt && ((tgt.kind === 'tableau' && d.g.src.kind === 'tableau' && tgt.col === d.g.src.col) ||
+                          (tgt.kind === 'free' && d.g.src.kind === 'free' && tgt.i === d.g.src.i));
+    if (!overSrc) window.Sfx.play('bad');
     render(true); // snap back
   }
 
@@ -576,7 +603,7 @@
       var loc = locate(uid);
       var target = loc.kind === 'tableau' ? { kind: 'tableau', col: loc.col }
         : loc.kind === 'foundation' ? { kind: 'foundation-zone' } : { kind: 'free', i: loc.i };
-      var dest = resolveDest(target, selected.uids);
+      var dest = resolveDest(target, selected.uids, selected.src);
       if (dest && doMove(selected.src, dest)) return;
       // fall through and treat the tapped card fresh
     }
@@ -600,7 +627,7 @@
 
   function handleEmptyTap(p) {
     if (!selected) return;
-    var dest = resolveDest(targetAt(p.x, p.y), selected.uids);
+    var dest = resolveDest(targetAt(p.x, p.y), selected.uids, selected.src);
     if (dest && doMove(selected.src, dest)) return;
     clearSelection();
     render(true);
@@ -696,8 +723,23 @@
   function kbEnter() {
     if (!kb.active) { kb.active = true; paintCursor(); return; }
     if (selected) {
+      // Enter on the selection's own column cycles the run length (one card
+      // shorter each time, wrapping back to the longest run) — split-run moves
+      // were unreachable by keyboard before this.
+      if (kb.row === 'tab' && selected.src.kind === 'tableau' && selected.src.col === kb.i) {
+        var column = state.tableau[kb.i];
+        var ni = selected.src.index + 1;
+        var g2 = ni < column.length ? grabbable(column[ni].uid) : grabColumnRun(kb.i);
+        if (g2) { setSelection(g2); window.Sfx.play('pick'); paintCursor(); }
+        return;
+      }
+      // Enter on the selected free-cell card again = deselect, not an error
+      if (kb.row === 'top' && kb.i < 4 && selected.src.kind === 'free' && selected.src.i === kb.i) {
+        clearSelection(); paintCursor();
+        return;
+      }
       var dest = kb.row === 'top' ? (kb.i < 4 ? { kind: 'free', i: kb.i } : { kind: 'foundation-zone' }) : { kind: 'tableau', col: kb.i };
-      var d = resolveDest(dest, selected.uids);
+      var d = resolveDest(dest, selected.uids, selected.src);
       if (d && doMove(selected.src, d)) { paintCursor(); return; }
       window.Sfx.play('bad');
       return;
@@ -721,8 +763,18 @@
   }
 
   // ================= game lifecycle =================
+  var lossCounted = false;   // set when this deal's abandonment is already in the stats
   function newGame(number, resumeState) {
+    // Walking away from a started, unwon game is a loss — without this the
+    // stats could never count one (played === won, the win rate read 100%
+    // forever and the streak never reset). Resuming at boot is the same game,
+    // not a new one, and the solution demo records its loss when it starts.
+    if (!resumeState && state && state.moves > 0 && !won && !lossCounted) {
+      window.Storage.recordResult(state.number, false, 0, state.moves);
+    }
+    lossCounted = false;
     won = false; finishing = false;
+    sweepGen++;                 // kill any in-flight auto-collect/auto-finish chain
     lastMove = null;
     undoStack = []; redoStack = [];
     cancelWinAnimation();
@@ -775,7 +827,12 @@
 
   function undo() {
     if (!undoStack.length) return;
+    // A finished game stays finished: undoing after the win (possible during the
+    // several-second win animation, before the overlay blocks input) reset `won`
+    // and let the same win be recorded twice in the stats via redo/replay.
+    if (won || winAnimating) return;
     finishing = false;
+    sweepGen++;                 // an in-flight sweep must not replay what we take back
     redoStack.push(E.clone(state));
     state = undoStack.pop();
     won = false;
@@ -785,6 +842,8 @@
   }
   function redo() {
     if (!redoStack.length) return;
+    if (won || winAnimating) return;   // see undo(): a finished game stays finished
+    sweepGen++;                 // ditto: the state jumps, pending sweep ticks are stale
     undoStack.push(E.clone(state));
     state = redoStack.pop();
     clearSelection();
@@ -979,9 +1038,15 @@
   var demoing = false, demoTimer = null;
   function showSolution() {
     if (demoing || won || finishing) return;
-    var path = E.solvePath(state, 200000, 2500);
+    // fullOnly: a partial (anytime) line must never be played as "the solution"
+    var path = E.solvePath(state, 200000, 2500, true);
     if (!path || !path.length) { toast(T('hintStuck')); return; } // couldn't solve in budget
     demoing = true;
+    // watching the solution concedes the game: record the loss now (if it was
+    // actually played) and mark it counted so the demo's own reset doesn't
+    // count the demo's moves as a second abandonment
+    if (state.moves > 0 && !won && !lossCounted) window.Storage.recordResult(state.number, false, 0, state.moves);
+    lossCounted = true;
     clearHintVisual(); clearSelection(); setDeadEnd(false);
     toast(T('solutionShowing'));
     var queue = path.slice();
@@ -1102,7 +1167,9 @@
     };
   }
   function saveCurrent() {
-    if (won) return;
+    // never persist mid-demo: the solver's moves would be saved as the player's
+    // game (close the app during the demo -> resume a half-solved board)
+    if (won || demoing) return;
     var CAP = 400; // keep the last N undo/redo steps
     window.Storage.saveCurrent({
       number: state.number,
@@ -1436,7 +1503,19 @@
     }, { passive: false });
     document.addEventListener('i18n:changed', function () { updateHud(); });
     window.addEventListener('beforeunload', saveCurrent);
-    document.addEventListener('visibilitychange', function () { if (document.hidden) { saveCurrent(); } });
+    // pause the clock while the app is hidden (locked phone, switched app):
+    // elapsed time is wall-clock based, so without this an hour in the pocket
+    // counted as an hour of play (and wrecked best times).
+    var pausedByHide = false;
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        if (state) saveCurrent();       // uses elapsedNow(), so save before pausing
+        if (timing) { stopTiming(); pausedByHide = true; }
+      } else if (pausedByHide) {
+        pausedByHide = false;
+        if (state && !won) startTiming();
+      }
+    });
   }
 
   // difficulty tiers (from js/difficulty.js, if computed)
@@ -1511,7 +1590,7 @@
     else if (window.Storage.isSolved(v)) { msg = T('statusSolved'); el.classList.add('is-solved'); }
     else msg = T('statusUnsolved');
     var t = tierOf(v);
-    if (t >= 1 && t <= 4) msg += ' · ' + tierName(t);
+    if (t >= 1 && t <= 6) msg += ' · ' + tierName(t); // all six tiers, matching the HUD badge
     el.textContent = msg;
   }
 
@@ -1586,7 +1665,15 @@
   // ================= donation / tip =================
   var PAYPAL_URL = 'https://www.paypal.com/paypalme/TommyWurzbacher';
   var pendingTip = false;
-  function openDonate() { try { window.open(PAYPAL_URL, '_blank', 'noopener'); } catch (e) { location.href = PAYPAL_URL; } }
+  function openDonate() {
+    // Android WebView: window.open returns null WITHOUT throwing (no multi-window
+    // support), so the button silently did nothing there. Fall back to a plain
+    // navigation — MainActivity intercepts external URLs and hands them to the
+    // system browser.
+    var w = null;
+    try { w = window.open(PAYPAL_URL, '_blank', 'noopener'); } catch (e) { /* fall through */ }
+    if (!w) location.href = PAYPAL_URL;
+  }
   function showTip() { show('overlay-tip'); window.Storage.setTipShown(true); }
   function hideTip() { hide('overlay-tip'); }
   function maybeShowTip() { // one-time gentle ask, after the win screen is dismissed

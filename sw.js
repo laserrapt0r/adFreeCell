@@ -1,7 +1,7 @@
 /* adFreeCell - service worker for offline play (PWA).
    Cache-first for the app shell so the game works with no network. Bump
    CACHE_VERSION whenever assets change to roll the cache. */
-const CACHE_VERSION = 'adfreecell-v47';
+const CACHE_VERSION = 'adfreecell-v48';
 
 const ASSETS = [
   './',
@@ -24,11 +24,15 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
+  // No catch here: if precaching fails (a 404'd asset, a dropped connection),
+  // the install MUST fail so the old, complete cache keeps serving — swallowing
+  // the error used to "install" a broken half-cache and then delete the good
+  // one on activate. cache:'reload' bypasses the HTTP cache so a new version
+  // never gets populated with stale files (Pages serves max-age=600).
   e.waitUntil(
     caches.open(CACHE_VERSION)
-      .then((cache) => cache.addAll(ASSETS))
+      .then((cache) => cache.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
-      .catch(() => { /* ignore individual failures */ })
   );
 });
 
@@ -52,7 +56,13 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
         }
         return res;
-      }).catch(() => cached);
+      }).catch(() => {
+        // offline fallbacks: deep links like ./?game=123 are navigations whose
+        // exact URL is not precached — serve the app shell (the page reads the
+        // query itself). Never resolve with undefined (that throws in respondWith).
+        if (req.mode === 'navigate') return caches.match('index.html');
+        return cached || Response.error();
+      });
     })
   );
 });

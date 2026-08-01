@@ -198,8 +198,15 @@
       if (canToFoundation(s, acc[i].card)) out.push({ src: acc[i].src, dst: { kind: 'foundation', i: acc[i].card.suit } });
     for (c = 0; c < 8; c++) {
       var col = s.tableau[c];
-      for (var d = 0; d < col.length; d++) {
-        if (!isRun(col, d)) continue;
+      // find the topmost movable run, then generate EVERY suffix of it as a
+      // candidate move (any suffix of a run is itself a run). Splitting a run is
+      // sometimes the only winning move — generating just the longest run made
+      // the solver's move space incomplete, so "provably unsolvable" (and hints)
+      // could be wrong about positions that a partial-run move still wins.
+      var d0 = -1;
+      for (var d = 0; d < col.length; d++) if (isRun(col, d)) { d0 = d; break; }
+      if (d0 < 0) continue;
+      for (d = d0; d < col.length; d++) {
         var run = col.slice(d), lead = run[0];
         for (t = 0; t < 8; t++) {
           if (t === c) continue;
@@ -210,7 +217,6 @@
             out.push({ src: { kind: 'tableau', col: c, index: d }, dst: { kind: 'tableau', col: t } });
           }
         }
-        break; // only the topmost movable run of a column
       }
     }
     for (i = 0; i < 4; i++) {
@@ -409,8 +415,10 @@
   // OOM-crashes the tab on the very hardest deals). maxMs is an OPTIONAL overall
   // wall-clock deadline; the hint passes none, so it is never cut off by time.
   // If no pass fully solves within the node cap, the best-progress line found is
-  // returned (anytime) so a hint is always available. Returns [] if already won.
-  function solvePath(s, maxNodes, maxMs) {
+  // returned (anytime) so a hint is always available — unless fullOnly is set,
+  // in which case only a genuine winning line counts (a partial line played as
+  // "the solution" would strand mid-game and mislead). Returns [] if already won.
+  function solvePath(s, maxNodes, maxMs, fullOnly) {
     maxNodes = maxNodes || 200000;
     if (isWon(s)) return [];
     var end = maxMs ? Date.now() + maxMs : Infinity;
@@ -422,7 +430,7 @@
       if (r.path) return r.path;
       if (!firstPartial) firstPartial = r.partial;   // keep the primary heuristic's line for anytime
     }
-    return firstPartial || null;
+    return fullOnly ? null : (firstPartial || null);
   }
 
   window.FreeCellEngine = {
