@@ -1237,20 +1237,38 @@
   function show(id) { document.getElementById(id).classList.add('show'); }
   function hide(id) { document.getElementById(id).classList.remove('show'); }
 
+  // generic yes/no dialog on top of whatever is open. The message and the OK
+  // button take i18n keys (data-i18n is refreshed too, so a language switch
+  // while it's open keeps it correct); onOk runs only on explicit confirm.
+  var confirmAction = null;
+  function askConfirm(msgKey, okKey, onOk) {
+    var msg = document.getElementById('confirm-msg');
+    var ok = document.getElementById('btn-confirm-ok');
+    msg.setAttribute('data-i18n', msgKey); msg.textContent = T(msgKey);
+    ok.setAttribute('data-i18n', okKey); ok.textContent = T(okKey);
+    document.getElementById('overlay-confirm').setAttribute('aria-label', T(msgKey));
+    confirmAction = onOk;
+    show('overlay-confirm');
+  }
+
   // ================= wiring =================
   var deferredInstall = null;
 
   function wire() {
     document.getElementById('btn-new').onclick = function () { openSelect(); };
     // in-game confirm overlay, NOT window.confirm(): the Android WebView app has
-    // no WebChromeClient dialog support, so confirm() silently returns false
-    // there and the button appears dead.
+    // no WebChromeClient dialog support, so confirm() silently returned false
+    // there and the button appeared dead.
     document.getElementById('btn-restart').onclick = function () {
-      if (state && state.moves > 0 && !won) { show('overlay-restart'); return; }
+      if (state && state.moves > 0 && !won) { askConfirm('restartConfirm', 'restart', restart); return; }
       restart();
     };
-    document.getElementById('btn-restart-ok').onclick = function () { hide('overlay-restart'); restart(); };
-    document.getElementById('btn-restart-cancel').onclick = function () { hide('overlay-restart'); };
+    document.getElementById('btn-confirm-ok').onclick = function () {
+      hide('overlay-confirm');
+      var f = confirmAction; confirmAction = null;
+      if (f) f();
+    };
+    document.getElementById('btn-confirm-cancel').onclick = function () { confirmAction = null; hide('overlay-confirm'); };
     btnUndo.onclick = undo;
     btnRedo.onclick = redo;
     document.getElementById('btn-hint').onclick = hint;
@@ -1283,7 +1301,7 @@
     });
     document.getElementById('btn-stats-close').onclick = function () { hide('overlay-stats'); };
     document.getElementById('btn-stats-reset').onclick = function () {
-      if (confirm(T('resetStatsConfirm'))) { window.Storage.resetStats(); renderStats(); }
+      askConfirm('resetStatsConfirm', 'resetStats', function () { window.Storage.resetStats(); renderStats(); });
     };
     document.getElementById('btn-settings').onclick = function () { show('overlay-settings'); };
     document.getElementById('btn-settings-close').onclick = function () { hide('overlay-settings'); };
