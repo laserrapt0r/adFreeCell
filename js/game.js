@@ -420,6 +420,7 @@
   }
 
   function onPointerDown(e) {
+    if (drag) onPointerCancel();  // self-heal: never start on top of a stale drag
     if (won && !finishing) return;
     if (finishing) return;
     clearHintVisual();
@@ -447,6 +448,7 @@
     window.Sfx.unlock();
     document.addEventListener('pointermove', onPointerMove, { passive: false });
     document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerCancel);
     e.preventDefault();
   }
 
@@ -476,9 +478,26 @@
     highlightDrop(resolveDest(targetAt(p.x, p.y), drag.g.uids));
   }
 
+  // the browser took the gesture away (Android fires pointercancel when it
+  // claims a touch for a system gesture — then pointerup NEVER arrives). Without
+  // this the drag state stayed live forever: the card froze mid-air and the next
+  // tap anywhere teleported it there and snapped it back.
+  function onPointerCancel() {
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    document.removeEventListener('pointercancel', onPointerCancel);
+    if (!drag) return;
+    var d = drag; drag = null;
+    highlightDrop(null);
+    clearLegalTargets();
+    d.g.uids.forEach(function (u) { cardEls[u].classList.remove('dragging'); });
+    if (d.moved) render(true);   // snap the cards back to their slots
+  }
+
   function onPointerUp(e) {
     document.removeEventListener('pointermove', onPointerMove);
     document.removeEventListener('pointerup', onPointerUp);
+    document.removeEventListener('pointercancel', onPointerCancel);
     if (!drag) return;
     var d = drag; drag = null;
     highlightDrop(null);
@@ -1223,10 +1242,15 @@
 
   function wire() {
     document.getElementById('btn-new').onclick = function () { openSelect(); };
+    // in-game confirm overlay, NOT window.confirm(): the Android WebView app has
+    // no WebChromeClient dialog support, so confirm() silently returns false
+    // there and the button appears dead.
     document.getElementById('btn-restart').onclick = function () {
-      if (state && state.moves > 0 && !won && !confirm(T('restartConfirm'))) return;
+      if (state && state.moves > 0 && !won) { show('overlay-restart'); return; }
       restart();
     };
+    document.getElementById('btn-restart-ok').onclick = function () { hide('overlay-restart'); restart(); };
+    document.getElementById('btn-restart-cancel').onclick = function () { hide('overlay-restart'); };
     btnUndo.onclick = undo;
     btnRedo.onclick = redo;
     document.getElementById('btn-hint').onclick = hint;

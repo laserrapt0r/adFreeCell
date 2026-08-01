@@ -3,6 +3,7 @@ package de.tommywurzbacher.adfreecell;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -32,6 +33,10 @@ public class MainActivity extends Activity {
                 .build();
 
         webView = new WebView(this);
+        // Without a WebChromeClient the WebView suppresses JS dialogs: confirm()
+        // silently returns false. The game no longer uses them, but keep dialog
+        // support so any future alert/confirm behaves like a normal browser.
+        webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
