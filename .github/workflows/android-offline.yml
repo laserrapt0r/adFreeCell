@@ -9,13 +9,13 @@ on:
   workflow_dispatch:
     inputs:
       versionName:
-        description: "Version name (e.g. 1.0.4)"
+        description: "Version name (e.g. 1.0.5)"
         required: false
-        default: "1.0.4"
+        default: "1.0.5"
       versionCode:
         description: "Version code (integer, must increase every upload)"
         required: false
-        default: "7"
+        default: "8"
 
 permissions:
   contents: read
