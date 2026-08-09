@@ -195,3 +195,5 @@ and the LGPL/GPL texts in place.
   (<https://github.com/younestouati/playing-cards-standard-deck>).
 - FreeCell was designed by **Paul Alfille**; the numbered-deal shuffle follows
   Microsoft's classic implementation.
+- Built with **[Claude](https://claude.com/claude-code)**, Anthropic's AI
+  assistant.

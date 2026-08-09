@@ -1480,6 +1480,10 @@
     document.getElementById('btn-donate').onclick = function () { show('overlay-tip'); }; // ask first, don't jump straight to PayPal
     document.getElementById('btn-tip-send').onclick = function () { openDonate(); hideTip(); };
     document.getElementById('btn-tip-later').onclick = hideTip;
+    // Play-Store rating ask: only in the Android app (the tip overlay doubles as
+    // the "support the game" dialog there - heart button and one-time ask alike)
+    if (IS_ANDROID_APP) document.getElementById('tip-rate').classList.remove('hidden');
+    document.getElementById('btn-rate').onclick = function () { hideTip(); openExternal(PLAY_STORE_URL); };
     document.getElementById('overlay-tip').addEventListener('pointerdown', function (e) {
       if (e.target.id === 'overlay-tip') hideTip();
     });
@@ -1695,18 +1699,22 @@
     else toast(url);
   }
 
-  // ================= donation / tip =================
+  // ================= donation / tip / rating =================
   var PAYPAL_URL = 'https://www.paypal.com/paypalme/TommyWurzbacher';
+  var PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=de.tommywurzbacher.adfreecell';
+  // the offline app serves the game from the WebViewAssetLoader origin - that is
+  // the one place a "rate it on the Play Store" ask makes sense
+  var IS_ANDROID_APP = location.hostname === 'appassets.androidplatform.net';
   var pendingTip = false;
-  function openDonate() {
+  function openExternal(url) {
     // Android WebView: window.open returns null WITHOUT throwing (no multi-window
-    // support), so the button silently did nothing there. Fall back to a plain
-    // navigation — MainActivity intercepts external URLs and hands them to the
-    // system browser.
+    // support). Fall back to a plain navigation — MainActivity intercepts
+    // external URLs and hands them to the system browser.
     var w = null;
-    try { w = window.open(PAYPAL_URL, '_blank', 'noopener'); } catch (e) { /* fall through */ }
-    if (!w) location.href = PAYPAL_URL;
+    try { w = window.open(url, '_blank', 'noopener'); } catch (e) { /* fall through */ }
+    if (!w) location.href = url;
   }
+  function openDonate() { openExternal(PAYPAL_URL); }
   function showTip() { show('overlay-tip'); window.Storage.setTipShown(true); }
   function hideTip() { hide('overlay-tip'); }
   function maybeShowTip() { // one-time gentle ask, after the win screen is dismissed

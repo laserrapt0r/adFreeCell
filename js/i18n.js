@@ -54,6 +54,7 @@
       installApp: 'App installieren', shareApp: 'Weiterempfehlen', linkCopied: 'Link kopiert!',
       supportDev: 'Entwickler unterstützen',
       donate: 'Trinkgeld', tipTitle: 'Gefällt dir adFreeCell?', tipText: 'Wenn dir das Spiel gefällt, freue ich mich über ein kleines Trinkgeld.', tipSend: 'Trinkgeld senden', tipLater: 'Vielleicht später',
+      rateHint: 'adFreeCell ist komplett kostenlos und werbefrei. Eine Bewertung im Play Store hilft anderen, das Spiel zu finden.', rateBtn: 'Im Play Store bewerten', madeWith: 'Erstellt mit Claude AI',
       rotateTitle: 'Bitte Gerät drehen', rotateText: 'adFreeCell wird im Querformat gespielt.',
     },
     en: {
@@ -106,6 +107,7 @@
       installApp: 'Install app', shareApp: 'Recommend', linkCopied: 'Link copied!',
       supportDev: 'Support the developer',
       donate: 'Tip', tipTitle: 'Enjoying adFreeCell?', tipText: 'If you like the game, a small tip would make my day.', tipSend: 'Send a tip', tipLater: 'Maybe later',
+      rateHint: 'adFreeCell is completely free and ad-free. A Play Store rating helps others find the game.', rateBtn: 'Rate on Play Store', madeWith: 'Built with Claude AI',
       rotateTitle: 'Please rotate your device', rotateText: 'adFreeCell is played in landscape.',
     },
     es: {
@@ -158,6 +160,7 @@
       installApp: 'Instalar app', shareApp: 'Recomendar', linkCopied: 'Enlace copiado',
       supportDev: 'Apoyar al desarrollador',
       donate: 'Propina', tipTitle: '¿Te gusta adFreeCell?', tipText: 'Si te gusta el juego, una pequeña propina me haría muy feliz.', tipSend: 'Enviar propina', tipLater: 'Quizás más tarde',
+      rateHint: 'adFreeCell es totalmente gratuito y sin anuncios. Una valoración en Play Store ayuda a que otros encuentren el juego.', rateBtn: 'Valorar en Play Store', madeWith: 'Creado con Claude AI',
       rotateTitle: 'Gira el dispositivo', rotateText: 'adFreeCell se juega en horizontal.',
     },
     fr: {
@@ -210,6 +213,7 @@
       installApp: 'Installer l’app', shareApp: 'Recommander', linkCopied: 'Lien copié',
       supportDev: 'Soutenir le développeur',
       donate: 'Pourboire', tipTitle: 'adFreeCell te plaît ?', tipText: 'Si tu aimes le jeu, un petit pourboire me ferait très plaisir.', tipSend: 'Envoyer un pourboire', tipLater: 'Plus tard',
+      rateHint: 'adFreeCell est entièrement gratuit et sans publicité. Une note sur le Play Store aide les autres à découvrir le jeu.', rateBtn: 'Noter sur le Play Store', madeWith: 'Créé avec Claude AI',
       rotateTitle: 'Tournez l’appareil', rotateText: 'adFreeCell se joue en mode paysage.',
     },
     it: {
@@ -262,6 +266,7 @@
       installApp: 'Installa app', shareApp: 'Consiglia', linkCopied: 'Link copiato',
       supportDev: 'Sostieni lo sviluppatore',
       donate: 'Mancia', tipTitle: 'Ti piace adFreeCell?', tipText: 'Se il gioco ti piace, una piccola mancia mi farebbe felice.', tipSend: 'Invia una mancia', tipLater: 'Forse più tardi',
+      rateHint: 'adFreeCell è completamente gratuito e senza pubblicità. Una valutazione sul Play Store aiuta altri a trovare il gioco.', rateBtn: 'Valuta sul Play Store', madeWith: 'Creato con Claude AI',
       rotateTitle: 'Ruota il dispositivo', rotateText: 'adFreeCell si gioca in orizzontale.',
     },
     pt: {
@@ -315,6 +320,7 @@
       supportDev: 'Apoia o programador',
       rotateTitle: 'Roda o teu dispositivo, por favor', rotateText: 'O adFreeCell joga-se na horizontal.',
       donate: 'Gorjeta', tipTitle: 'A gostar do adFreeCell?', tipText: 'Se gostas do jogo, uma pequena gorjeta faria o meu dia.', tipSend: 'Enviar gorjeta', tipLater: 'Talvez mais tarde',
+      rateHint: 'O adFreeCell é totalmente gratuito e sem anúncios. Uma avaliação na Play Store ajuda outros a encontrar o jogo.', rateBtn: 'Avaliar na Play Store', madeWith: 'Criado com Claude AI',
     },
     nl: {
       tagline: 'FreeCell. Geen advertentiebanner. Geen trackers. Gewoon kaarten.',
@@ -367,6 +373,7 @@
       supportDev: 'Steun de ontwikkelaar',
       rotateTitle: 'Draai je apparaat', rotateText: 'adFreeCell speel je in liggende stand.',
       donate: 'Fooi', tipTitle: 'Vind je adFreeCell leuk?', tipText: 'Als je het spel leuk vindt, maak je met een kleine fooi mijn dag goed.', tipSend: 'Fooi geven', tipLater: 'Misschien later',
+      rateHint: 'adFreeCell is helemaal gratis en reclamevrij. Een beoordeling in de Play Store helpt anderen het spel te vinden.', rateBtn: 'Beoordelen in de Play Store', madeWith: 'Gemaakt met Claude AI',
     },
     pl: {
       tagline: 'FreeCell. Bez banerów reklamowych. Bez śledzenia. Tylko karty.',
@@ -419,6 +426,7 @@
       supportDev: 'Wesprzyj twórcę',
       rotateTitle: 'Obróć urządzenie', rotateText: 'W adFreeCell gra się w orientacji poziomej.',
       donate: 'Napiwek', tipTitle: 'Podoba Ci się adFreeCell?', tipText: 'Jeśli lubisz tę grę, mały napiwek sprawi mi wielką radość.', tipSend: 'Wyślij napiwek', tipLater: 'Może później',
+      rateHint: 'adFreeCell jest całkowicie darmowy i bez reklam. Ocena w Sklepie Play pomaga innym znaleźć grę.', rateBtn: 'Oceń w Sklepie Play', madeWith: 'Stworzone z Claude AI',
     },
     zh: {
       tagline: '空当接龙。没有广告横幅，没有追踪器，只有纸牌。',
@@ -471,6 +479,7 @@
       supportDev: '支持开发者',
       rotateTitle: '请旋转你的设备', rotateText: 'adFreeCell 需要横屏游玩。',
       donate: '打赏', tipTitle: '玩得开心吗？', tipText: '如果你喜欢这款游戏，一点小小的打赏就能让我今天特别开心。', tipSend: '送出打赏', tipLater: '以后再说',
+      rateHint: 'adFreeCell 完全免费且无广告。在 Play 商店评分能帮助更多人发现这款游戏。', rateBtn: '在 Play 商店评分', madeWith: '由 Claude AI 打造',
     },
     'zh-Hant': {
       tagline: '新接龍。沒有廣告橫幅，沒有追蹤器，只有紙牌。',
@@ -523,6 +532,7 @@
       supportDev: '支持開發者',
       rotateTitle: '請旋轉你的裝置', rotateText: 'adFreeCell 要橫向遊玩。',
       donate: '打賞', tipTitle: '喜歡 adFreeCell 嗎？', tipText: '如果你喜歡這個遊戲，一點小小的打賞就能讓我開心一整天。', tipSend: '送出打賞', tipLater: '下次再說',
+      rateHint: 'adFreeCell 完全免費且無廣告。在 Play 商店評分能幫助更多人發現這款遊戲。', rateBtn: '在 Play 商店評分', madeWith: '由 Claude AI 打造',
     },
     ja: {
       tagline: 'フリーセル。広告バナーなし。トラッカーなし。あるのはカードだけ。',
@@ -575,6 +585,7 @@
       supportDev: '開発者を応援する',
       rotateTitle: 'デバイスを横向きにしてください', rotateText: 'adFreeCell は横向きでプレイします。',
       donate: 'チップ', tipTitle: 'adFreeCell を楽しんでいますか？', tipText: 'ゲームを気に入ってくれたら、ちょっとしたチップをもらえると嬉しいです。', tipSend: 'チップを送る', tipLater: 'また今度',
+      rateHint: 'adFreeCellは完全無料・広告なしです。Playストアでの評価が、他の人がこのゲームを見つける助けになります。', rateBtn: 'Playストアで評価する', madeWith: 'Claude AIで作られました',
     },
     ar: {
       tagline: 'فري سيل. بلا إعلانات. بلا متتبّعات. أوراق فقط.',
@@ -627,6 +638,7 @@
       supportDev: 'ادعم المطوّر',
       rotateTitle: 'يرجى تدوير جهازك', rotateText: 'تُلعب adFreeCell في الوضع الأفقي.',
       donate: 'إكرامية', tipTitle: 'هل تستمتع بـ adFreeCell؟', tipText: 'إذا أعجبتك اللعبة، فإن إكرامية صغيرة ستُسعد يومي.', tipSend: 'أرسل إكرامية', tipLater: 'ربما لاحقًا',
+      rateHint: '‏adFreeCell مجاني تمامًا وخالٍ من الإعلانات. تقييمك في متجر Play يساعد الآخرين على اكتشاف اللعبة.', rateBtn: 'قيّم في متجر Play', madeWith: 'صُنع بواسطة Claude AI',
     },
     ko: {
       tagline: '프리셀. 광고 배너 없음. 추적 없음. 오직 카드만.',
@@ -679,6 +691,7 @@
       supportDev: '개발자 응원하기',
       rotateTitle: '기기를 돌려주세요', rotateText: 'adFreeCell은 가로 모드로 플레이해요.',
       donate: '팁 주기', tipTitle: 'adFreeCell 재미있나요?', tipText: '게임이 마음에 든다면 작은 팁이 큰 힘이 돼요.', tipSend: '팁 보내기', tipLater: '나중에',
+      rateHint: 'adFreeCell은 완전 무료이며 광고가 없습니다. Play 스토어 평가는 다른 사람들이 게임을 찾는 데 도움이 됩니다.', rateBtn: 'Play 스토어에서 평가하기', madeWith: 'Claude AI로 제작',
     },
     ru: {
       tagline: 'FreeCell. Без рекламных баннеров. Без трекеров. Только карты.',
@@ -731,6 +744,7 @@
       supportDev: 'Поддержать разработчика',
       rotateTitle: 'Пожалуйста, поверни устройство', rotateText: 'В adFreeCell играют в горизонтальном режиме.',
       donate: 'Чаевые', tipTitle: 'Нравится adFreeCell?', tipText: 'Если игра тебе по душе, небольшие чаевые сделают мой день.', tipSend: 'Отправить чаевые', tipLater: 'Может, позже',
+      rateHint: 'adFreeCell полностью бесплатна и без рекламы. Оценка в Play Маркете помогает другим найти игру.', rateBtn: 'Оценить в Play Маркете', madeWith: 'Создано с Claude AI',
     },
     tr: {
       tagline: 'FreeCell. Reklam afişi yok. Takipçi yok. Sadece kartlar.',
@@ -783,6 +797,7 @@
       supportDev: 'Geliştiriciye destek ol',
       rotateTitle: 'Lütfen cihazını çevir', rotateText: 'adFreeCell yatay modda oynanır.',
       donate: 'Bahşiş', tipTitle: 'adFreeCell hoşuna gidiyor mu?', tipText: 'Oyunu beğendiysen, küçük bir bahşiş günümü güzelleştirir.', tipSend: 'Bahşiş gönder', tipLater: 'Belki sonra',
+      rateHint: 'adFreeCell tamamen ücretsiz ve reklamsızdır. Play Store\'da vereceğiniz puan, başkalarının oyunu bulmasına yardımcı olur.', rateBtn: 'Play Store\'da puanla', madeWith: 'Claude AI ile yapıldı',
     },
   };
 

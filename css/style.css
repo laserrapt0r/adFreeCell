@@ -383,6 +383,10 @@ html, body {
 .stats-tier-num { min-width: 92px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .license-note { font-size: 0.72rem; color: var(--muted); margin: 14px 0 4px; }
+.made-with { margin-top: 2px; opacity: 0.75; }   /* deliberately subtle */
+/* rating ask inside the tip overlay (Android app only): set apart from the tip row */
+.tip-rate { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.tip-rate .license-note { margin: 0 0 8px; }
 .muted-line { font-size: 0.85rem; color: var(--muted); margin: 2px 0 10px; }
 .select-status { font-size: 0.9rem; font-weight: 600; margin: 10px 0; min-height: 1.2em; }
 .select-status.is-solved { color: var(--accent-2); }
