@@ -161,7 +161,12 @@
     computeMetrics();
     positionSlots();
     var pos = computePositions();
+    // Cards on the finger are positioned by the drag, not the layout: a render
+    // mid-drag (auto-collect ticks every 150ms!) used to snap them back to the
+    // pile until the next pointermove - the "card briefly sticks" effect.
+    var held = (drag && drag.moved) ? drag.g.uids : null;
     for (var uid in cardEls) {
+      if (held && held.indexOf(+uid) !== -1) continue;
       var el = cardEls[uid];
       var p = pos[uid];
       if (!p) continue;
@@ -370,12 +375,40 @@
   // Warn (debounced) when the position is provably unwinnable. The solver only
   // returns "unsolvable" when it can exhaust the reachable space within the cap,
   // i.e. in genuinely dead (usually late-game) positions.
+  // The search itself (up to ~1.6s!) runs in a Web Worker so it can never freeze
+  // the UI mid-drag; if workers are unavailable it falls back to the old
+  // synchronous path - but then never while a finger is on the board.
   var deadEndTimer = null, deadEndShown = false;
+  var solverWorker = null, solverWorkerBroken = false, deadEndSeq = 0;
+  function getSolverWorker() {
+    if (solverWorkerBroken || !window.Worker) return null;
+    if (solverWorker) return solverWorker;
+    try {
+      solverWorker = new Worker('js/solver-worker.js');
+      solverWorker.onmessage = function (ev) {
+        var d = ev.data;
+        if (d.id !== deadEndSeq) return;   // a newer position superseded this check
+        if (won || finishing || !state || !window.Storage.deadEndWarn) return;
+        setDeadEnd(!!d.unsolvable);
+      };
+      solverWorker.onerror = function () {  // e.g. the file missing from an old cache
+        solverWorkerBroken = true;
+        try { solverWorker.terminate(); } catch (e) { /* ignore */ }
+        solverWorker = null;
+      };
+    } catch (e) { solverWorkerBroken = true; solverWorker = null; }
+    return solverWorker;
+  }
   function scheduleDeadEndCheck() {
     if (deadEndTimer) { clearTimeout(deadEndTimer); deadEndTimer = null; }
+    deadEndSeq++;                          // invalidate any in-flight worker result
     if (!window.Storage.deadEndWarn || !state || won || finishing) { setDeadEnd(false); return; }
     deadEndTimer = setTimeout(function () {
+      deadEndTimer = null;
       if (won || finishing || !state || !window.Storage.deadEndWarn) return;
+      var w = getSolverWorker();
+      if (w) { w.postMessage({ id: deadEndSeq, state: state, maxNodes: 30000 }); return; }
+      if (drag) { scheduleDeadEndCheck(); return; }   // sync fallback: wait until the finger is up
       var res = E.findSolutionMove(state, 30000);
       setDeadEnd(!!res.unsolvable);
     }, 450);
