@@ -298,44 +298,37 @@
       row.forEach(function (z) { if (z.x0 < lo.x0) lo = z; if (z.x1 > hi.x1) hi = z; });
       lo.x0 = -1e9; hi.x1 = 1e9;
     });
+    // Pass 1: real touch (>=4px both ways) with a legal zone - largest overlap
+    // wins. Pass 2 (collected in the same loop): if nothing legal is touched,
+    // the smallest GAP between the card's rectangle and a legal zone's EDGE
+    // wins - the edge is what the player sees, not some landing point below
+    // the pile. The origin competes the same way (rect gap to where the card
+    // came from), so "a few pixels short of the target" beats an origin half a
+    // board away, while dropping near the origin still cancels.
     var best = null, bestA = 0, overSrc = false;
+    var gapDest = null, gapBest = Infinity;
     for (i = 0; i < zones.length; i++) {
       var z = zones[i];
-      var w = Math.min(cx + m.cw, z.x1) - Math.max(cx, z.x0);
+      var w = Math.min(cx + m.cw, z.x1) - Math.max(cx, z.x0);   // negative = gap size
       var h = Math.min(cy + m.ch, z.y1) - Math.max(cy, z.y0);
-      if (w < 4 || h < 4) continue;              // "a few pixels" must be a real touch
       if ((z.t.kind === 'tableau' && d.g.src.kind === 'tableau' && z.t.col === d.g.src.col) ||
-          (z.t.kind === 'free' && d.g.src.kind === 'free' && z.t.i === d.g.src.i)) { overSrc = true; continue; }
+          (z.t.kind === 'free' && d.g.src.kind === 'free' && z.t.i === d.g.src.i)) {
+        if (w >= 4 && h >= 4) overSrc = true;
+        continue;
+      }
       var dest = resolveDest(z.t, d.g.uids, d.g.src);  // applies the real move rules
       if (!dest) continue;
-      var a = w * h;
-      if (a > bestA) { bestA = a; best = dest; }
+      if (w >= 4 && h >= 4) { var a = w * h; if (a > bestA) { bestA = a; best = dest; } }
+      var gx = w < 0 ? -w : 0, gy = h < 0 ? -h : 0;
+      var g2 = gx * gx + gy * gy;
+      if (g2 < gapBest) { gapBest = g2; gapDest = dest; }
     }
     if (best) return { dest: best, overSrc: overSrc };
-    // Nothing legal touched: fly to the NEAREST legal option instead of
-    // punishing the drop - unless the card's own origin is closer, which makes
-    // the drop a deliberate cancel. Distances compare where the lead card IS to
-    // where it WOULD LAND (slot positions), so the choice matches what you see.
-    var cands = [], t;
-    for (i = 0; i < 4; i++) {
-      t = resolveDest({ kind: 'free', i: i }, d.g.uids, d.g.src);
-      if (t) cands.push({ dest: t, x: m.freeX[t.i], y: m.topY });
-    }
-    t = resolveDest({ kind: 'foundation-zone' }, d.g.uids, d.g.src);
-    if (t) cands.push({ dest: t, x: m.foundX[t.i], y: m.topY });
-    for (c = 0; c < 8; c++) {
-      t = resolveDest({ kind: 'tableau', col: c }, d.g.uids, d.g.src);
-      if (t) cands.push({ dest: t, x: m.colX[c], y: m.tableauY + state.tableau[c].length * m.fans[c] });
-    }
-    if (!cands.length) return { dest: null, overSrc: overSrc };  // no legal move at all -> old buzz/snap
-    var dOf = function (x, y) { var ddx = x - cx, ddy = y - cy; return ddx * ddx + ddy * ddy; };
-    var nearest = null, nd = dOf(o.x, o.y);      // the origin competes as "cancel"
-    for (i = 0; i < cands.length; i++) {
-      var dist = dOf(cands[i].x, cands[i].y);
-      if (dist < nd) { nd = dist; nearest = cands[i].dest; }
-    }
-    if (!nearest) return { dest: null, overSrc: true };          // origin is nearest -> quiet cancel
-    return { dest: nearest, overSrc: overSrc };
+    if (!gapDest) return { dest: null, overSrc: overSrc };  // no legal move at all -> buzz+snap
+    var ox = Math.abs(cx - o.x) - m.cw, oy = Math.abs(cy - o.y) - m.ch;
+    if (ox < 0) ox = 0; if (oy < 0) oy = 0;
+    if (ox * ox + oy * oy <= gapBest) return { dest: null, overSrc: true };  // origin closest -> quiet cancel
+    return { dest: gapDest, overSrc: overSrc };
   }
 
   // resolve an abstract target into a concrete destination for a run. `src` (the
@@ -746,12 +739,24 @@
     selected = null;
     clearLegalTargets();
   }
+  // Mark the drop target ON ITS TOP CARD when the pile has cards: the slot
+  // element underneath has opacity 0 then, so marking the slot showed NOTHING
+  // for occupied columns/foundations - the player had no live "this is where
+  // it will land" feedback, which made drops feel unpredictable.
   function highlightDrop(dest) {
+    for (var u in cardEls) cardEls[u].classList.remove('drop-ok');
     slotEls.free.concat(slotEls.foundation, slotEls.column).forEach(function (s) { s.classList.remove('drop-ok'); });
     if (!dest) return;
     if (dest.kind === 'free') slotEls.free[dest.i].classList.add('drop-ok');
-    else if (dest.kind === 'foundation') slotEls.foundation[dest.i].classList.add('drop-ok');
-    else if (dest.kind === 'tableau') slotEls.column[dest.col].classList.add('drop-ok');
+    else if (dest.kind === 'foundation') {
+      var top = state.foundations[dest.i];
+      if (top > 0) cardEls[dest.i * 13 + top].classList.add('drop-ok');
+      else slotEls.foundation[dest.i].classList.add('drop-ok');
+    } else if (dest.kind === 'tableau') {
+      var col = state.tableau[dest.col];
+      if (col.length) cardEls[col[col.length - 1].uid].classList.add('drop-ok');
+      else slotEls.column[dest.col].classList.add('drop-ok');
+    }
   }
 
   // ---- highlight every legal destination for a picked-up run ----

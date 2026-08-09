@@ -189,6 +189,9 @@ html, body {
 .slot.suit-red .pip { color: #ff5b6a; }
 .slot.suit-black .pip { color: #e9edf1; }
 .slot.drop-ok { box-shadow: 0 0 0 3px var(--accent-2), 0 0 18px rgba(55, 201, 120, 0.5); background: rgba(55, 201, 120, 0.14); }
+/* live drop target on an occupied pile: the ring sits on the TOP CARD (the
+   slot underneath is invisible then) */
+.card.drop-ok { box-shadow: 0 0 0 3px var(--accent-2), 0 0 18px rgba(55, 201, 120, 0.55); }
 
 /* every legal destination for the picked-up card (subtler than drop-ok) */
 .card.legal-target { box-shadow: 0 0 0 2px rgba(90, 220, 150, 0.9), 0 2px 6px rgba(0, 0, 0, 0.4); }
