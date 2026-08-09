@@ -10,9 +10,9 @@ android {
         applicationId "de.tommywurzbacher.adfreecell"
         minSdk 21
         targetSdk 36
-        // Override on the command line: -PversionCode=12 -PversionName=1.0.9
-        versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 12
-        versionName project.hasProperty('versionName') ? project.versionName : "1.0.9"
+        // Override on the command line: -PversionCode=13 -PversionName=1.0.10
+        versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 13
+        versionName project.hasProperty('versionName') ? project.versionName : "1.0.10"
     }
 
     signingConfigs {

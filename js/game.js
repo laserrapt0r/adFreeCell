@@ -311,7 +311,31 @@
       var a = w * h;
       if (a > bestA) { bestA = a; best = dest; }
     }
-    return { dest: best, overSrc: overSrc };
+    if (best) return { dest: best, overSrc: overSrc };
+    // Nothing legal touched: fly to the NEAREST legal option instead of
+    // punishing the drop - unless the card's own origin is closer, which makes
+    // the drop a deliberate cancel. Distances compare where the lead card IS to
+    // where it WOULD LAND (slot positions), so the choice matches what you see.
+    var cands = [], t;
+    for (i = 0; i < 4; i++) {
+      t = resolveDest({ kind: 'free', i: i }, d.g.uids, d.g.src);
+      if (t) cands.push({ dest: t, x: m.freeX[t.i], y: m.topY });
+    }
+    t = resolveDest({ kind: 'foundation-zone' }, d.g.uids, d.g.src);
+    if (t) cands.push({ dest: t, x: m.foundX[t.i], y: m.topY });
+    for (c = 0; c < 8; c++) {
+      t = resolveDest({ kind: 'tableau', col: c }, d.g.uids, d.g.src);
+      if (t) cands.push({ dest: t, x: m.colX[c], y: m.tableauY + state.tableau[c].length * m.fans[c] });
+    }
+    if (!cands.length) return { dest: null, overSrc: overSrc };  // no legal move at all -> old buzz/snap
+    var dOf = function (x, y) { var ddx = x - cx, ddy = y - cy; return ddx * ddx + ddy * ddy; };
+    var nearest = null, nd = dOf(o.x, o.y);      // the origin competes as "cancel"
+    for (i = 0; i < cands.length; i++) {
+      var dist = dOf(cands[i].x, cands[i].y);
+      if (dist < nd) { nd = dist; nearest = cands[i].dest; }
+    }
+    if (!nearest) return { dest: null, overSrc: true };          // origin is nearest -> quiet cancel
+    return { dest: nearest, overSrc: overSrc };
   }
 
   // resolve an abstract target into a concrete destination for a run. `src` (the
