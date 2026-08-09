@@ -273,13 +273,15 @@
   function within(x, slotX) { return x >= slotX - m.gap * 0.5 && x <= slotX + m.cw + m.gap * 0.5; }
 
   // Drop hit-testing for DRAGS: measured with the dragged card's rectangle, not
-  // the fingertip. targetAt() needed the finger inside a narrow band, so a card
-  // visibly sitting on a free cell could still miss (grip low on the card,
-  // target up in the corner). Here every zone competes for the largest overlap
-  // with the card, zones extend past the board edges (overshooting top-left is
-  // fine), and the old dead band between the top row and the tableau is shared
-  // naturally - whichever side the card covers more, wins.
-  function targetForDrag(d, dx, dy) {
+  // the fingertip - and LEGALITY FIRST. Only zones the run may actually move to
+  // compete, so an illegal neighbour column with a big overlap can never shadow
+  // the one legal target the card barely touches: a few pixels of overlap with
+  // the only legal spot are enough. Among several legal targets the larger
+  // overlap wins. Zones extend past the board edges (overshooting the top-left
+  // is fine) and the dead band between top row and tableau is covered.
+  // Returns { dest, overSrc }: dest = concrete legal destination or null;
+  // overSrc = the card touches its own pile (drop there = a quiet cancel).
+  function dropDestForDrag(d, dx, dy) {
     var o = d.origins[0];                        // the run's lead card = the grip
     var cx = o.x + dx, cy = o.y + dy;
     var topY1 = m.topY + m.ch + m.gap * 0.6;     // bottom edge of the top-row zones
@@ -296,16 +298,20 @@
       row.forEach(function (z) { if (z.x0 < lo.x0) lo = z; if (z.x1 > hi.x1) hi = z; });
       lo.x0 = -1e9; hi.x1 = 1e9;
     });
-    var best = null, bestA = m.cw * m.ch * 0.12; // must cover at least ~12% of a card
+    var best = null, bestA = 0, overSrc = false;
     for (i = 0; i < zones.length; i++) {
       var z = zones[i];
       var w = Math.min(cx + m.cw, z.x1) - Math.max(cx, z.x0);
       var h = Math.min(cy + m.ch, z.y1) - Math.max(cy, z.y0);
-      if (w <= 0 || h <= 0) continue;
+      if (w < 4 || h < 4) continue;              // "a few pixels" must be a real touch
+      if ((z.t.kind === 'tableau' && d.g.src.kind === 'tableau' && z.t.col === d.g.src.col) ||
+          (z.t.kind === 'free' && d.g.src.kind === 'free' && z.t.i === d.g.src.i)) { overSrc = true; continue; }
+      var dest = resolveDest(z.t, d.g.uids, d.g.src);  // applies the real move rules
+      if (!dest) continue;
       var a = w * h;
-      if (a > bestA) { bestA = a; best = z.t; }
+      if (a > bestA) { bestA = a; best = dest; }
     }
-    return best;
+    return { dest: best, overSrc: overSrc };
   }
 
   // resolve an abstract target into a concrete destination for a run. `src` (the
@@ -567,7 +573,7 @@
       cardEls[o.uid].style.transform = 'translate(' + (o.x + dx) + 'px,' + (o.y + dy) + 'px)';
     });
     // live highlight of a valid drop target (same card-overlap test as the drop)
-    highlightDrop(resolveDest(targetForDrag(drag, dx, dy), drag.g.uids, drag.g.src));
+    highlightDrop(dropDestForDrag(drag, dx, dy).dest);
   }
 
   // the browser took the gesture away (Android fires pointercancel when it
@@ -599,13 +605,10 @@
     if (!d.moved) { handleTap(d.uid, d.g); render(true); return; }
 
     var p = relPoint(e);
-    var tgt = targetForDrag(d, p.x - d.startX, p.y - d.startY);
-    var dest = resolveDest(tgt, d.g.uids, d.g.src);
-    if (dest && doMove(d.g.src, dest)) return;
+    var r = dropDestForDrag(d, p.x - d.startX, p.y - d.startY);
+    if (r.dest && doMove(d.g.src, r.dest)) return;
     // dropping back where the run came from is a cancel, not a mistake — no buzz
-    var overSrc = tgt && ((tgt.kind === 'tableau' && d.g.src.kind === 'tableau' && tgt.col === d.g.src.col) ||
-                          (tgt.kind === 'free' && d.g.src.kind === 'free' && tgt.i === d.g.src.i));
-    if (!overSrc) window.Sfx.play('bad');
+    if (!r.overSrc) window.Sfx.play('bad');
     render(true); // snap back
   }
 
