@@ -284,55 +284,44 @@
   function dropDestForDrag(d, dx, dy) {
     var o = d.origins[0];                        // the run's lead card = the grip
     var cx = o.x + dx, cy = o.y + dy;
-    var topY1 = m.topY + m.ch + m.gap * 0.6;     // bottom edge of the top-row zones
-    var zones = [], i, c;
-    for (i = 0; i < 4; i++) zones.push({ t: { kind: 'free', i: i }, x0: m.freeX[i] - m.gap / 2, x1: m.freeX[i] + m.cw + m.gap / 2, y0: -1e9, y1: topY1 });
-    var f0 = Math.min.apply(null, m.foundX), f1 = Math.max.apply(null, m.foundX) + m.cw;
-    zones.push({ t: { kind: 'foundation-zone' }, x0: f0 - m.gap / 2, x1: f1 + m.gap / 2, y0: -1e9, y1: topY1 });
-    for (c = 0; c < 8; c++) zones.push({ t: { kind: 'tableau', col: c }, x0: m.colX[c] - m.gap / 2, x1: m.colX[c] + m.cw + m.gap / 2, y0: m.tableauY - m.gap, y1: 1e9 });
-    // NOTE: no "outermost zones reach the screen edge" inflation any more - it
-    // made the leftmost free cell win the distance race along the entire row
-    // (its zone had horizontal gap 0 everywhere). Overshooting past the board
-    // edge is handled by the nearest-ring fallback below instead.
-    // THE GREEN RING IS THE TARGET. Every legal candidate is ranked by the
-    // distance from the card's centre to its RING - the visible marker (a free
-    // cell slot, the foundation's top card, a column's top card). The strips
-    // only decide which candidates the card is touching:
-    //  - touching legal strips: the touched candidate with the NEAREST ring
-    //    wins (area comparison used to send a card hovering just under the
-    //    free cells to a fan bottom 300px away - the column's abstract strip
-    //    top overlapped more than the cell did);
-    //  - touching nothing: nearest ring overall, with the origin competing as
-    //    the cancel - if the card is closest to where it came from, it snaps
-    //    back quietly.
-    function ringPoint(dest) {
-      if (dest.kind === 'free') return { x: m.freeX[dest.i] + m.cw / 2, y: m.topY + m.ch / 2 };
-      if (dest.kind === 'foundation') return { x: m.foundX[dest.i] + m.cw / 2, y: m.topY + m.ch / 2 };
-      var col = state.tableau[dest.col];
-      var y = m.tableauY + (col.length ? (col.length - 1) * m.fans[dest.col] : 0);
-      return { x: m.colX[dest.col] + m.cw / 2, y: y + m.ch / 2 };
-    }
     var ccx = cx + m.cw / 2, ccy = cy + m.ch / 2;
-    var overSrc = false;
+    // THE GREEN RING IS THE TARGET - and only VISIBLE targets attract. Each
+    // legal candidate gets an attraction rect sitting on its ring: the free
+    // cell / foundation slot (extended past the top edge for overshoot), a
+    // column's TOP CARD (extended below the fan - dropping under the pile
+    // clearly means that pile). A pile's buried region and the empty felt
+    // above it attract NOTHING: those abstract strips used to "touch" a card
+    // hovering just short of a free cell and drag it to a fan bottom far away.
+    //  - card touches attraction rects: nearest ring among them wins;
+    //  - card touches none: nearest ring overall, with the origin competing
+    //    as the cancel - closest to where it came from = quiet snap-back.
+    var cands = [], i, c, t, col;
+    var topY1 = m.topY + m.ch + m.gap / 2;
+    for (i = 0; i < 4; i++) {
+      t = resolveDest({ kind: 'free', i: i }, d.g.uids, d.g.src);
+      if (t && t.i === i) cands.push({ dest: t, x0: m.freeX[i] - m.gap / 2, x1: m.freeX[i] + m.cw + m.gap / 2, y0: -1e9, y1: topY1, rx: m.freeX[i] + m.cw / 2, ry: m.topY + m.ch / 2 });
+    }
+    t = resolveDest({ kind: 'foundation-zone' }, d.g.uids, d.g.src);
+    if (t) cands.push({ dest: t, x0: m.foundX[t.i] - m.gap / 2, x1: m.foundX[t.i] + m.cw + m.gap / 2, y0: -1e9, y1: topY1, rx: m.foundX[t.i] + m.cw / 2, ry: m.topY + m.ch / 2 });
+    for (c = 0; c < 8; c++) {
+      t = resolveDest({ kind: 'tableau', col: c }, d.g.uids, d.g.src);
+      if (!t) continue;
+      col = state.tableau[c];
+      var ty = m.tableauY + (col.length ? (col.length - 1) * m.fans[c] : 0);   // top card
+      cands.push({ dest: t, x0: m.colX[c] - m.gap / 2, x1: m.colX[c] + m.cw + m.gap / 2, y0: ty - m.gap / 2, y1: 1e9, rx: m.colX[c] + m.cw / 2, ry: ty + m.ch / 2 });
+    }
+    var overSrc = (m.cw - Math.abs(dx)) >= 4 && (m.ch - Math.abs(dy)) >= 4;   // still covering its origin
+    if (!cands.length) return { dest: null, overSrc: overSrc };  // no legal move at all -> buzz+snap
     var touch = null, touchD = Infinity, far = null, farD = Infinity;
-    for (i = 0; i < zones.length; i++) {
-      var z = zones[i];
+    for (i = 0; i < cands.length; i++) {
+      var z = cands[i];
       var w = Math.min(cx + m.cw, z.x1) - Math.max(cx, z.x0);
       var h = Math.min(cy + m.ch, z.y1) - Math.max(cy, z.y0);
-      if ((z.t.kind === 'tableau' && d.g.src.kind === 'tableau' && z.t.col === d.g.src.col) ||
-          (z.t.kind === 'free' && d.g.src.kind === 'free' && z.t.i === d.g.src.i)) {
-        if (w >= 4 && h >= 4) overSrc = true;
-        continue;
-      }
-      var dest = resolveDest(z.t, d.g.uids, d.g.src);  // applies the real move rules
-      if (!dest) continue;
-      var rp = ringPoint(dest);
-      var dd = (rp.x - ccx) * (rp.x - ccx) + (rp.y - ccy) * (rp.y - ccy);
-      if (w >= 4 && h >= 4 && dd < touchD) { touchD = dd; touch = dest; }
-      if (dd < farD) { farD = dd; far = dest; }
+      var dd = (z.rx - ccx) * (z.rx - ccx) + (z.ry - ccy) * (z.ry - ccy);
+      if (w >= 4 && h >= 4 && dd < touchD) { touchD = dd; touch = z.dest; }
+      if (dd < farD) { farD = dd; far = z.dest; }
     }
     if (touch) return { dest: touch, overSrc: overSrc };
-    if (!far) return { dest: null, overSrc: overSrc };      // no legal move at all -> buzz+snap
     var od = dx * dx + dy * dy;                             // centre distance back to the origin
     if (od <= farD) return { dest: null, overSrc: true };   // origin closest -> quiet cancel
     return { dest: far, overSrc: overSrc };
