@@ -272,6 +272,42 @@
   }
   function within(x, slotX) { return x >= slotX - m.gap * 0.5 && x <= slotX + m.cw + m.gap * 0.5; }
 
+  // Drop hit-testing for DRAGS: measured with the dragged card's rectangle, not
+  // the fingertip. targetAt() needed the finger inside a narrow band, so a card
+  // visibly sitting on a free cell could still miss (grip low on the card,
+  // target up in the corner). Here every zone competes for the largest overlap
+  // with the card, zones extend past the board edges (overshooting top-left is
+  // fine), and the old dead band between the top row and the tableau is shared
+  // naturally - whichever side the card covers more, wins.
+  function targetForDrag(d, dx, dy) {
+    var o = d.origins[0];                        // the run's lead card = the grip
+    var cx = o.x + dx, cy = o.y + dy;
+    var topY1 = m.topY + m.ch + m.gap * 0.6;     // bottom edge of the top-row zones
+    var zones = [], i, c;
+    for (i = 0; i < 4; i++) zones.push({ t: { kind: 'free', i: i }, x0: m.freeX[i] - m.gap / 2, x1: m.freeX[i] + m.cw + m.gap / 2, y0: -1e9, y1: topY1 });
+    var f0 = Math.min.apply(null, m.foundX), f1 = Math.max.apply(null, m.foundX) + m.cw;
+    zones.push({ t: { kind: 'foundation-zone' }, x0: f0 - m.gap / 2, x1: f1 + m.gap / 2, y0: -1e9, y1: topY1 });
+    for (c = 0; c < 8; c++) zones.push({ t: { kind: 'tableau', col: c }, x0: m.colX[c] - m.gap / 2, x1: m.colX[c] + m.cw + m.gap / 2, y0: m.tableauY - m.gap, y1: 1e9 });
+    // the outermost zones of each row reach to the screen edges (works for the
+    // lefty layout too, where the free/foundation groups swap sides)
+    var rows = [zones.slice(0, 5), zones.slice(5)];
+    rows.forEach(function (row) {
+      var lo = row[0], hi = row[0];
+      row.forEach(function (z) { if (z.x0 < lo.x0) lo = z; if (z.x1 > hi.x1) hi = z; });
+      lo.x0 = -1e9; hi.x1 = 1e9;
+    });
+    var best = null, bestA = m.cw * m.ch * 0.12; // must cover at least ~12% of a card
+    for (i = 0; i < zones.length; i++) {
+      var z = zones[i];
+      var w = Math.min(cx + m.cw, z.x1) - Math.max(cx, z.x0);
+      var h = Math.min(cy + m.ch, z.y1) - Math.max(cy, z.y0);
+      if (w <= 0 || h <= 0) continue;
+      var a = w * h;
+      if (a > bestA) { bestA = a; best = z.t; }
+    }
+    return best;
+  }
+
   // resolve an abstract target into a concrete destination for a run. `src` (the
   // run's origin) makes "back where it came from" resolve to null — a cancel,
   // not a move (it used to hop a free-cell card into a DIFFERENT empty cell, and
@@ -530,8 +566,8 @@
     drag.origins.forEach(function (o) {
       cardEls[o.uid].style.transform = 'translate(' + (o.x + dx) + 'px,' + (o.y + dy) + 'px)';
     });
-    // live highlight of a valid drop target
-    highlightDrop(resolveDest(targetAt(p.x, p.y), drag.g.uids, drag.g.src));
+    // live highlight of a valid drop target (same card-overlap test as the drop)
+    highlightDrop(resolveDest(targetForDrag(drag, dx, dy), drag.g.uids, drag.g.src));
   }
 
   // the browser took the gesture away (Android fires pointercancel when it
@@ -563,7 +599,7 @@
     if (!d.moved) { handleTap(d.uid, d.g); render(true); return; }
 
     var p = relPoint(e);
-    var tgt = targetAt(p.x, p.y);
+    var tgt = targetForDrag(d, p.x - d.startX, p.y - d.startY);
     var dest = resolveDest(tgt, d.g.uids, d.g.src);
     if (dest && doMove(d.g.src, dest)) return;
     // dropping back where the run came from is a cancel, not a mistake — no buzz
